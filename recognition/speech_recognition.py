@@ -39,7 +39,8 @@ class SpeechRecognition:
                 if text and (text != last_text or current_time - last_text_time > 5):
                     self.print_with_strictly_controlled_linebreaks(text)
                     last_text_time = current_time
-                    self.translation_queue.put(text)
+                    if not self.translation_queue is None:
+                        self.translation_queue.put(text)
                 elif self.args.debug:
                     print("処理後のテキストが空か、直前の文と同じため出力をスキップします")
             
