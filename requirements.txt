@@ -1,3 +1,5 @@
 mlx-lm
 pyaudio
 mlx-whisper
+noisereduce
+psutil
