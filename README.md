@@ -9,7 +9,7 @@ for macOS
 (1) Install [blackhole](https://github.com/ExistentialAudio/BlackHole)
 
 ```
-brew Install blackhole-2ch
+brew install blackhole-2ch
 ```
 
 (2) Create a new environment
