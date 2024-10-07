@@ -97,7 +97,7 @@ class Translation:
     @staticmethod
     def preprocess_text(text):
         text = text.replace("...", " ")
-        text = text.replace("&", "and")
+        #text = text.replace("&", "and")
         
         if not text.endswith(('.', '!', '?')):
             text += '.'
