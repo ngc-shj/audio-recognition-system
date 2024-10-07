@@ -80,17 +80,14 @@ class SpeechRecognition:
         for i, word in enumerate(words):
             buffer.append(word)
             
-            if SpeechRecognition.is_sentence_end(word):
+            if SpeechRecognition.is_sentence_end(word) or i == len(words) - 1:
                 print(' '.join(buffer), end='')
                 if SpeechRecognition.is_sentence_end(word):
                     print('\n', end='', flush=True)
+                    buffer = []  # 文末の場合のみバッファをクリア
                 else:
                     print(' ', end='', flush=True)
-                buffer = []
-            elif i == len(words) - 1:
-                print(' '.join(buffer), end='', flush=True)
-                buffer = []
-        
+
         if buffer:
             print(' '.join(buffer), end='', flush=True)
 
