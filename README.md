@@ -76,7 +76,3 @@ Contributions to enhance this project are welcome! Please:
 ## License
 
 This project is licensed under the MIT License - see the `LICENSE` file for details.
-
----
-
-This version aims to provide clear instructions, context, and support information, making the repository more accessible to new users.
