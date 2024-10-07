@@ -1,22 +1,35 @@
 from mlx_lm import load, generate
+import threading
 import queue
 import time
-import queue
 
 class Translation:
     def __init__(self, translation_queue, args):
         self.translation_queue = translation_queue
         self.args = args
-        self.load_model()
         self.last_reload_time = time.time()
         self.reload_interval = 60  # 1分ごとにモデルを再ロード
         self.consecutive_errors = 0
         self.max_consecutive_errors = 1
         self.error_cooldown = 2  # エラー後の待機時間（秒）
         self.failed_translations = []  # エラーとなった原文を保存するリスト
+        self.llm_model = None
+        self.llm_tokenizer = None
+        self.generation_params = {
+            "temp": 0.7,
+            "top_p": 0.95,
+            "max_tokens": 256,
+            "repetition_penalty": 1.1,
+            "repetition_context_size": 20,
+        }
+        self.load_model()
 
     def load_model(self):
-        self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.args.llm_model)
+        try:
+            self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.args.llm_model)
+        except Exception as e:
+            print(f"モデルの再ロード中にエラーが発生しました: {e}")
+            raise
 
     def translation_thread(self, is_running):
         while is_running.is_set():
@@ -51,19 +64,12 @@ class Translation:
     def translate_text(self, text):
         prompt = f"以下の英語を日本語に翻訳してください。翻訳のみを出力し、余計な説明は不要です:\n\n{text}\n\n日本語訳:"
 
-        generation_params = {
-            "temp": 0.3,
-            "top_p": 0.95,
-            "max_tokens": 256,
-            "repetition_penalty": 1.1,
-            "repetition_context_size": 20,
-        }
         if hasattr(self.llm_tokenizer, "apply_chat_template") and self.llm_tokenizer.chat_template is not None:
             messages = [{"role": "user", "content": prompt}]
             prompt = self.llm_tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
             )
-        response = generate(self.llm_model, self.llm_tokenizer, prompt=prompt, **generation_params)
+        response = generate(self.llm_model, self.llm_tokenizer, prompt=prompt, **self.generation_params)
         return response.strip()
 
     @staticmethod
