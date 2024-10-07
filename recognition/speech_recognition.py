@@ -71,7 +71,13 @@ class SpeechRecognition:
 
     @staticmethod
     def is_sentence_end(word):
-        return word.endswith(('.', '!', '?')) and not word.endswith('...')
+        # 日本語と英語の文末記号
+        sentence_end_chars = ('.', '!', '?', '。', '！', '？', '…')
+        # 省略記号
+        ellipsis = ('...', '…')
+    
+        return (word.endswith(sentence_end_chars) and 
+                not any(word.endswith(e) for e in ellipsis))
 
     @staticmethod
     def print_with_strictly_controlled_linebreaks(text):
