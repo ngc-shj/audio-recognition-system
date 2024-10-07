@@ -73,7 +73,7 @@ class SpeechRecognition:
     def is_sentence_end(word):
         # 日本語と英語の文末記号
         sentence_end_chars = ('.', '!', '?', '。', '！', '？')
-        return (word.endswith(sentence_end_chars)
+        return word.endswith(sentence_end_chars)
 
     @staticmethod
     def print_with_strictly_controlled_linebreaks(text):
