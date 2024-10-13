@@ -86,7 +86,6 @@ class SpeechRecognition:
                 print(' '.join(buffer), end='')
                 if SpeechRecognition.is_sentence_end(word):
                     print('\n', end='', flush=True)
-                    buffer = []  # 文末の場合のみバッファをクリア
                 elif i == len(words) - 1:
                     print(' ', end='', flush=True)
                 buffer = []
