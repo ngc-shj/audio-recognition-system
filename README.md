@@ -3,13 +3,19 @@
 An audio recognition and real-time translation system built to efficiently transcribe and translate audio input. This repository provides scripts for seamless audio processing with minimal setup, making it ideal for both researchers and developers.
 
 ## Table of Contents
-- [Overview](#overview)
-- [Installation](#installation)
-- [Usage](#usage)
-- [File Descriptions](#file-descriptions)
-- [Troubleshooting](#troubleshooting)
-- [Contributions](#contributions)
-- [License](#license)
+
+- [Audio Recognition System](#audio-recognition-system)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Installation](#installation)
+    - [1. Prerequisites](#1-prerequisites)
+    - [2. Clone the Repository](#2-clone-the-repository)
+    - [3. Install Dependencies](#3-install-dependencies)
+  - [Usage](#usage)
+  - [File Descriptions](#file-descriptions)
+  - [Troubleshooting](#troubleshooting)
+  - [Contributions](#contributions)
+  - [License](#license)
 
 ## Overview
 
@@ -18,6 +24,7 @@ The Audio Recognition System enables audio transcription and, optionally, transl
 ## Installation
 
 ### 1. Prerequisites
+
    - **macOS**: Install Blackhole for audio routing.
      ```bash
      brew install blackhole-2ch
@@ -26,12 +33,14 @@ The Audio Recognition System enables audio transcription and, optionally, transl
    - **Virtual Environment** (recommended): To keep dependencies organized.
 
 ### 2. Clone the Repository
+
    ```bash
    git clone https://github.com/ngc-shj/audio-recognition-system
    cd audio-recognition-system
    ```
 
 ### 3. Install Dependencies
+
    - Inside the project directory, run:
      ```bash
      pip install -r requirements.txt

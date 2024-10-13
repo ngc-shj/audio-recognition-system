@@ -58,3 +58,4 @@ class AudioCapture:
             elif "ステレオ ミキサー" in info["name"].lower():
                 return i
         return None
+ 
