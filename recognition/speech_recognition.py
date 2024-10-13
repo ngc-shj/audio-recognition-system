@@ -87,8 +87,9 @@ class SpeechRecognition:
                 if SpeechRecognition.is_sentence_end(word):
                     print('\n', end='', flush=True)
                     buffer = []  # 文末の場合のみバッファをクリア
-                else:
+                elif i == len(words) - 1:
                     print(' ', end='', flush=True)
+                buffer = []
 
         if buffer:
             print(' '.join(buffer), end='', flush=True)
