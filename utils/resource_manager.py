@@ -1,12 +1,16 @@
+import sys
 import psutil
-import resource
+
+if sys.platform != 'win32':
+    import resource
 
 class ResourceManager:
     def __init__(self, min_threads=2, max_threads=8):
         self.min_threads = min_threads
         self.max_threads = max_threads
         self.current_threads = min_threads
-        self.set_resource_limits()
+        if sys.platform != 'win32':
+            self.set_resource_limits()
 
     def set_resource_limits(self):
         # CPUタイムを300秒に制限

@@ -1,5 +1,9 @@
-mlx-lm
+mlx-lm; sys_platform == 'darwin'
+torch
+transformers
+accelerate
 pyaudio
-mlx-whisper
+mlx-whisper; sys_platform == 'darwin'
+openai-whisper; sys_platform != 'darwin'
 noisereduce
 psutil

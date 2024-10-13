@@ -1,7 +1,14 @@
-from mlx_lm import load, generate
+import sys
 import threading
 import queue
 import time
+import gc
+
+if sys.platform == 'darwin':
+    from mlx_lm import load, generate
+else:
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, logging
 
 class Translation:
     def __init__(self, translation_queue, args):
@@ -15,18 +22,49 @@ class Translation:
         self.failed_translations = []  # エラーとなった原文を保存するリスト
         self.llm_model = None
         self.llm_tokenizer = None
-        self.generation_params = {
-            "temp": 0.7,
-            "top_p": 0.95,
-            "max_tokens": 256,
-            "repetition_penalty": 1.1,
-            "repetition_context_size": 20,
-        }
+
+        if sys.platform == 'darwin':
+            self.generation_params = {
+                "temp": 0.8,
+                "top_p": 0.95,
+                "max_tokens": 256,
+                "repetition_penalty": 1.1,
+                "repetition_context_size": 20,
+            }
+        else:
+            self.generation_params = {
+                "do_sample": True,
+                "temperature": 0.8,
+                "top_p": 0.95,
+                "top_k": 40,
+                "max_new_tokens": 256,
+                "repetition_penalty": 1.1,
+            }
         self.load_model()
 
     def load_model(self):
         try:
-            self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.args.llm_model)
+            if sys.platform == 'darwin':
+                self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.args.llm_model)
+            else:
+                del self.llm_model
+                del self.llm_tokenizer
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+                self.llm_tokenizer = AutoTokenizer.from_pretrained(
+                    self.args.llm_model,
+                    trust_remote_code=True
+                )
+                logging.disable_progress_bar()
+                self.llm_model = AutoModelForCausalLM.from_pretrained(
+                    self.args.llm_model,
+                    torch_dtype="auto",
+                    device_map="auto",
+                    low_cpu_mem_usage=True,
+                    trust_remote_code=True,
+                )
+
         except Exception as e:
             print(f"モデルの再ロード中にエラーが発生しました: {e}")
             raise
@@ -69,7 +107,29 @@ class Translation:
             prompt = self.llm_tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
             )
-        response = generate(self.llm_model, self.llm_tokenizer, prompt=prompt, **self.generation_params)
+        if sys.platform == 'darwin':
+            response = generate(
+                self.llm_model,
+                self.llm_tokenizer,
+                prompt=prompt,
+                **self.generation_params
+            )
+        else:
+            input_ids = self.llm_tokenizer.encode(
+                prompt,
+                add_special_tokens=True,
+                return_tensors='pt'
+            )
+            output_ids = self.llm_model.generate(
+                input_ids.to(self.llm_model.device),
+                pad_token_id=self.llm_tokenizer.pad_token_id,
+                **self.generation_params
+            )
+            response = self.llm_tokenizer.decode(
+                output_ids[0][input_ids.size(1) :],
+                skip_special_tokens=True
+            )
+
         return response.strip()
 
     @staticmethod
