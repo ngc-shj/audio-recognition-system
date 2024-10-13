@@ -74,7 +74,7 @@ def main():
     processing_queue = queue.Queue()
     translation_queue = queue.Queue()
     
-    audio_capture = AudioCapture(config, audio_queue)
+    audio_capture = AudioCapture(config, audio_queue, args)
     audio_processing = AudioProcessing(config, audio_queue, processing_queue)
     speech_recognition = SpeechRecognition(config, processing_queue, translation_queue, args)
     translation = Translation(translation_queue, args)
