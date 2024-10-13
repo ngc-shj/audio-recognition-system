@@ -26,7 +26,7 @@ class AudioCapture:
                             channels=self.config.CHANNELS,
                             rate=self.config.RATE,
                             input=True,
-                            input_device_index= self.input_device_index,
+                            input_device_index=self.input_device_index,
                             frames_per_buffer=self.config.CHUNK,
                             stream_callback=self.audio_callback)
         
