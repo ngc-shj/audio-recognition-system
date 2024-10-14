@@ -95,7 +95,7 @@ class Translation:
                     print(f"\n翻訳: {translated_text}\n")
                     # 認識結果をファイルに追記
                     with open(self.log_file_path, "a", encoding="utf-8") as log_file:
-                        log_file.write(translated_text)
+                        log_file.write(f"{translated_text}\n")
                     self.consecutive_errors = 0
                 else:
                     if self.args.debug:
@@ -168,11 +168,11 @@ class Translation:
 
     @staticmethod
     def preprocess_text(text):
-        text = text.replace("...", " ")
+        #text = text.replace("...", " ")
         #text = text.replace("&", "and")
-        
-        if not text.endswith(('.', '!', '?')):
-            text += '.'
-        
+        #
+        #if not text.endswith(('.', '!', '?')):
+        #    text += '.'
+        #
         return text.strip()
 

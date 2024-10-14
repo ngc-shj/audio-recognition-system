@@ -13,7 +13,7 @@ from utils.resource_manager import ResourceManager
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Real-time Audio Recognition with Translation")
     if sys.platform == 'darwin':
-        parser.add_argument("--model_path", type=str, default="mlx-community/whisper-large-v3-turbo-q4",
+        parser.add_argument("--model-path", type=str, default="mlx-community/whisper-large-v3-turbo-q4",
                             help="Path or HuggingFace repo for the Whisper model")
     parser.add_argument("--model-size", default="large-v3-turbo",
                         choices=["tiny", "base", "small", "medium", "large-v3", "large-v3-turbo", "turbo"],
@@ -34,7 +34,7 @@ def parse_arguments():
     parser.add_argument("--buffer-duration", type=float, default=5.0,
                         help="Duration of audio buffer in seconds (default: 5.0)")
 
-    default_llm_model = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+    default_llm_model = "mlx-community/Llama-3.1-Swallow-8B-Instruct-v0.1-4bit"
     if sys.platform != 'darwin':
         default_llm_model = "llm-jp/llm-jp-3-3.7b-instruct"
     parser.add_argument("--llm-model", type=str, default=default_llm_model,
