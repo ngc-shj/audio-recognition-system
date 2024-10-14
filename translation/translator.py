@@ -17,7 +17,7 @@ class Translation:
         self.translation_queue = translation_queue
         self.args = args
         self.last_reload_time = time.time()
-        self.reload_interval = 1800  # 30分ごとにモデルを再ロード
+        self.reload_interval = 7200  # 120分ごとにモデルを再ロード
         if sys.platform == 'darwin':
             self.reload_interval = 60  # 1分ごとにモデルを再ロード
         self.consecutive_errors = 0
@@ -65,7 +65,7 @@ class Translation:
                     self.args.llm_model,
                     trust_remote_code=True
                 )
-                logging.disable_progress_bar()
+                #logging.disable_progress_bar()
                 self.llm_model = AutoModelForCausalLM.from_pretrained(
                     self.args.llm_model,
                     torch_dtype="auto",
