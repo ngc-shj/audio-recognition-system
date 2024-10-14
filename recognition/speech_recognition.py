@@ -1,4 +1,6 @@
 import sys
+import os
+import datetime
 import queue
 import wave
 import time
@@ -19,6 +21,11 @@ class SpeechRecognition:
 
         if sys.platform != 'darwin':
             self.model = whisper.load_model(self.args.model_size)
+
+        os.makedirs(self.args.output_dir, exist_ok=True)
+        current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_file_path = os.path.join(self.args.output_dir,
+                                        f"recognized_audio_log_{current_time}.txt")
 
     def recognition_thread(self, is_running):
         last_text = ""
@@ -85,21 +92,29 @@ class SpeechRecognition:
         sentence_end_chars = ('.', '!', '?', '。', '！', '？')
         return word.endswith(sentence_end_chars)
 
-    @staticmethod
-    def print_with_strictly_controlled_linebreaks(text):
+    def print_with_strictly_controlled_linebreaks(self, text):
         words = text.split()
         buffer = []
+        final_output = ""
         for i, word in enumerate(words):
             buffer.append(word)
             
             if SpeechRecognition.is_sentence_end(word) or i == len(words) - 1:
-                print(' '.join(buffer), end='')
+                line = ' '.join(buffer)
+                final_output += line
                 if SpeechRecognition.is_sentence_end(word):
-                    print('\n', end='', flush=True)
+                    final_output += '\n'
                 elif i == len(words) - 1:
-                    print(' ', end='', flush=True)
+                    final_output += ' '
                 buffer = []
 
         if buffer:
-            print(' '.join(buffer), end='', flush=True)
+            final_output += line + ' '
+
+        # コンソールに出力
+        print(final_output, end='', flush=True)
+
+        # 認識結果をファイルに追記
+        with open(self.log_file_path, "a", encoding="utf-8") as log_file:
+            log_file.write(final_output)
 

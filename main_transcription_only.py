@@ -28,10 +28,12 @@ def parse_arguments():
                         help="Number of channels (default: 1)")
     parser.add_argument("--chunk", type=int, default=1024,
                         help="Chunk size (default: 1024)")
-    parser.add_argument("--input_device", type=int, help="Input device index (default: auto-detect Black Hole)")
+    parser.add_argument("--input-device", type=int, help="Input device index (default: auto-detect Black Hole)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    parser.add_argument("--buffer_duration", type=float, default=5.0,
+    parser.add_argument("--buffer-duration", type=float, default=5.0,
                         help="Duration of audio buffer in seconds (default: 5.0)")
+    parser.add_argument("--output-dir", type=str, default="logs",
+                        help="Directory where log files for recognized and translated audio will be saved. Default is 'logs'.")
     return parser.parse_args()
 
 class AudioTranscriptionSystem:

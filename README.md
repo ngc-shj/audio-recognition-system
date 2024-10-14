@@ -65,13 +65,13 @@ Depending on your needs, you can run the following scripts:
 1. **For Transcription Only**  
    Transcribes live audio and outputs it to the console.
    ```bash
-   python main_transcription_only.py --input_device <device_number>
+   python main_transcription_only.py --input-device <device_number>
    ```
 
 2. **For Transcription and Translation**  
    Transcribes and translates audio in real-time, displaying both the original and translated text.
    ```bash
-   python main_with_translation.py --input_device <device_number>
+   python main_with_translation.py --input-device <device_number>
    ```
 
 Again, replace `<device_number>` with the appropriate ID.

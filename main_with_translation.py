@@ -29,16 +29,19 @@ def parse_arguments():
                         help="Number of channels (default: 1)")
     parser.add_argument("--chunk", type=int, default=1024,
                         help="Chunk size (default: 1024)")
-    parser.add_argument("--input_device", type=int, help="Input device index (default: auto-detect Black Hole)")
+    parser.add_argument("--input-device", type=int, help="Input device index (default: auto-detect Black Hole)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    parser.add_argument("--buffer_duration", type=float, default=5.0,
+    parser.add_argument("--buffer-duration", type=float, default=5.0,
                         help="Duration of audio buffer in seconds (default: 5.0)")
 
     default_llm_model = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     if sys.platform != 'darwin':
         default_llm_model = "llm-jp/llm-jp-3-3.7b-instruct"
-    parser.add_argument("--llm_model", type=str, default=default_llm_model,
+    parser.add_argument("--llm-model", type=str, default=default_llm_model,
                         help="Path to the local LLM model for translation")
+
+    parser.add_argument("--output-dir", type=str, default="logs",
+                        help="Directory where log files for recognized and translated audio will be saved. Default is 'logs'.")
 
     return parser.parse_args()
 
