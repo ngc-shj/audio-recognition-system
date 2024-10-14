@@ -14,8 +14,8 @@ def parse_arguments():
     if sys.platform == 'darwin':
         parser.add_argument("--model_path", type=str, default="mlx-community/whisper-large-v3-turbo-q4",
                             help="Path or HuggingFace repo for the Whisper model")
-    parser.add_argument("--model-size", default="medium",
-                        choices=["tiny", "base", "small", "medium", "large"],
+    parser.add_argument("--model-size", default="large-v3-turbo",
+                        choices=["tiny", "base", "small", "medium", "large-v3", "large-v3-turbo", "turbo"],
                         help="Model size for Whisper (default: medium)")
     parser.add_argument("--language", type=str, default="ja",
                         help="Language code for speech recognition (e.g., 'en' for English, 'ja' for Japanese)")
