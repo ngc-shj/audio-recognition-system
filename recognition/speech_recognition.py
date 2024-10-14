@@ -109,7 +109,8 @@ class SpeechRecognition:
                 buffer = []
 
         if buffer:
-            final_output += line + ' '
+            line = ' '.join(buffer)
+            final_output += line
 
         # コンソールに出力
         print(final_output, end='', flush=True)
