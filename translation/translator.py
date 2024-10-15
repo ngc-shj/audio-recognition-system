@@ -50,7 +50,10 @@ class Translation:
         os.makedirs(self.args.output_dir, exist_ok=True)
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file_path = os.path.join(self.args.output_dir,
-                                        f"translated_audio_log_{current_time}.txt")
+                                          f"translated_audio_log_{current_time}.txt")
+        self.bilingual_log_file_path = os.path.join(self.args.output_dir,
+                                                    f"bilingual_translation_log_{current_time}.txt")
+
 
     def load_model(self):
         try:
@@ -109,6 +112,7 @@ class Translation:
                     continue
 
                 translated_texts = []
+                bilingual_texts = []
                 for text in texts_to_translate:
                     processed_text = self.preprocess_text(text)
                     translated_text = self.translate_text(processed_text)
@@ -116,6 +120,7 @@ class Translation:
                     if self.is_valid_translation(translated_text):
                         print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
+                        bilingual_texts.append(f"原文: {processed_text}\n翻訳: {translated_text}\n")
                         self.consecutive_errors = 0
                     else:
                         if self.args.debug:
@@ -126,6 +131,11 @@ class Translation:
                 if translated_texts:
                     with open(self.log_file_path, "a", encoding="utf-8") as log_file:
                         log_file.write("\n".join(translated_texts) + "\n")
+
+                # バイリンガルログをファイルに追記
+                if bilingual_texts:
+                    with open(self.bilingual_log_file_path, "a", encoding="utf-8") as bilingual_log_file:
+                        bilingual_log_file.write("\n".join(bilingual_texts) + "\n")
 
             except Exception as e:
                 print(f"\nエラー (翻訳スレッド): {e}", flush=True)
