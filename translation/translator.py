@@ -26,6 +26,7 @@ class Translation:
         self.failed_translations = []  # エラーとなった原文を保存するリスト
         self.llm_model = None
         self.llm_tokenizer = None
+        self.batch_size = args.batch_size if hasattr(args, 'batch_size') else 5  # デフォルト値は5
 
         if sys.platform == 'darwin':
             self.generation_params = {
@@ -81,33 +82,51 @@ class Translation:
     def translation_thread(self, is_running):
         while is_running.is_set():
             try:
-                if self.failed_translations:
-                    text = self.failed_translations.pop(0)
+                # バッチ処理の準備
+                texts_to_translate = []
+            
+                # 失敗した翻訳の再処理を優先
+                while self.failed_translations and len(texts_to_translate) < self.batch_size:
+                    texts_to_translate.append(self.failed_translations.pop(0))
                     if self.args.debug:
-                        print(f"\n再翻訳を試みます: {text}\n")
-                else:
-                    text = self.translation_queue.get(timeout=1)
+                        print(f"\n再翻訳を試みます: {texts_to_translate[-1]}\n")
+
+                # キューから新しいテキストを追加
+                while len(texts_to_translate) < self.batch_size:
+                    try:
+                        text = self.translation_queue.get_nowait()
+                        texts_to_translate.append(text)
+                    except queue.Empty:
+                        if self.args.debug:
+                            print("翻訳キューが空です")
+                        break
                 
-                processed_text = self.preprocess_text(text)
-                translated_text = self.translate_text(processed_text)
+                if not texts_to_translate:
+                    time.sleep(0.1)  # キューが空の場合、短い待機時間を設ける
+                    continue
+
+                translated_texts = []
+                for text in texts_to_translate:
+                    processed_text = self.preprocess_text(text)
+                    translated_text = self.translate_text(processed_text)
                 
-                if self.is_valid_translation(translated_text):
-                    print(f"\n翻訳: {translated_text}\n")
-                    # 認識結果をファイルに追記
+                    if self.is_valid_translation(translated_text):
+                        print(f"\n翻訳: {translated_text}\n")
+                        translated_texts.append(translated_text)
+                        self.consecutive_errors = 0
+                    else:
+                        if self.args.debug:
+                            print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {text}\n")
+                        self.handle_translation_error(text)
+                
+                # 認識結果をファイルに追記
+                if translated_texts:
                     with open(self.log_file_path, "a", encoding="utf-8") as log_file:
-                        log_file.write(f"{translated_text}\n")
-                    self.consecutive_errors = 0
-                else:
-                    if self.args.debug:
-                        print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {text}\n")
-                    self.handle_translation_error(text)
-                
-            except queue.Empty:
-                if self.args.debug:
-                    print("翻訳キューが空です")
+                        log_file.write("\n".join(translated_texts) + "\n")
+
             except Exception as e:
                 print(f"\nエラー (翻訳スレッド): {e}", flush=True)
-                self.handle_translation_error(text)
+                time.sleep(1)
             
             self.check_model_reload()
 
