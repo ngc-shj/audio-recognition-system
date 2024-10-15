@@ -55,6 +55,9 @@ class Translation:
     def load_model(self):
         try:
             if sys.platform == 'darwin':
+                del self.llm_model
+                del self.llm_tokenizer
+                gc.collect()
                 self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.args.llm_model)
             else:
                 del self.llm_model
@@ -144,6 +147,15 @@ class Translation:
                 self.llm_tokenizer,
                 prompt=prompt,
                 **self.generation_params
+            )
+            output_ids = self.llm_tokenizer.encode(
+                response,
+                add_special_tokens=True,
+                return_tensors='pt'
+            )
+            response = self.llm_tokenizer.decode(
+                output_ids[0],
+                skip_special_tokens=True
             )
         else:
             input_ids = self.llm_tokenizer.encode(
