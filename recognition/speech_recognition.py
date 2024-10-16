@@ -58,9 +58,13 @@ class SpeechRecognition:
                     last_text_time = current_time
                     if self.translation_queue:
                         self.translation_queue.put(text)
+                    # 認識結果をファイルに追記
+                    with open(self.log_file_path, "a", encoding="utf-8") as log_file:
+                        log_file.write(text + "\n")
+
                 elif self.args.debug:
                     print("処理後のテキストが空か、直前の文と同じため出力をスキップします")
-            
+
             except queue.Empty:
                 if self.args.debug:
                     print("認識キューが空です")
@@ -114,8 +118,4 @@ class SpeechRecognition:
 
         # コンソールに出力
         print(final_output, end='', flush=True)
-
-        # 認識結果をファイルに追記
-        with open(self.log_file_path, "a", encoding="utf-8") as log_file:
-            log_file.write(final_output)
 
