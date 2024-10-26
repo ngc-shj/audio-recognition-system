@@ -6,6 +6,7 @@ import wave
 import time
 import numpy as np
 import pyaudio
+from language_config import LanguageConfig
 
 if sys.platform == 'darwin':
     import mlx_whisper
@@ -13,19 +14,22 @@ else:
     import whisper
 
 class SpeechRecognition:
-    def __init__(self, config, processing_queue, translation_queue, args):
+    def __init__(self, config, processing_queue, translation_queue, args, lang_config):
         self.config = config
         self.processing_queue = processing_queue
         self.translation_queue = translation_queue
         self.args = args
+        self.lang_config = lang_config
 
         if sys.platform != 'darwin':
             self.model = whisper.load_model(self.args.model_size)
 
         os.makedirs(self.args.output_dir, exist_ok=True)
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_file_path = os.path.join(self.args.output_dir,
-                                        f"recognized_audio_log_{current_time}.txt")
+        self.log_file_path = os.path.join(
+            self.args.output_dir,
+            f"recognized_audio_log_{self.lang_config.source_lang}_{current_time}.txt"
+        )
 
     def recognition_thread(self, is_running):
         last_text = ""
@@ -42,10 +46,13 @@ class SpeechRecognition:
                 try:
                     if sys.platform == 'darwin':
                         result = mlx_whisper.transcribe(normalized_audio,
-                                                        language=self.args.language,
-                                                        path_or_hf_repo=self.args.model_path)
+                                                        language=self.lang_config.source_lang,
+                                                        path_or_hf_repo=self.args.model_path
+                        )
                     else:
-                        result = self.model.transcribe(normalized_audio, language=self.args.language)
+                        result = self.model.transcribe(normalized_audio,
+                                                       language=self.lang_config.source_lang
+                        )
                 except Exception as e:
                     print(f"音声認識エラー: {e}")
                     continue

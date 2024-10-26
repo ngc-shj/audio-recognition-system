@@ -5,7 +5,9 @@ import threading
 import queue
 import time
 import gc
+from language_config import LanguageConfig
 from collections import deque
+from typing import Dict
 
 if sys.platform == 'darwin':
     from mlx_lm import load, generate
@@ -14,9 +16,12 @@ else:
     from transformers import AutoModelForCausalLM, AutoTokenizer, logging
 
 class Translation:
-    def __init__(self, translation_queue, args):
+    def __init__(self, translation_queue, args, lang_config):
         self.translation_queue = translation_queue
         self.args = args
+        self.lang_config = lang_config
+        self.prompt_template = self._setup_translation_prompt()
+
         self.last_reload_time = time.time()
         self.reload_interval = 7200  # 120分ごとにモデルを再ロード
         if sys.platform == 'darwin':
@@ -33,8 +38,32 @@ class Translation:
         self.context_window = deque(maxlen=8)  # 直近8つの文脈を保持
         self.context_separator = "\n"  # 文脈間の区切り文字
 
+        # 生成パラメータの設定
+        self.generation_params = self._setup_generation_params()
+        
+        self.load_model()
+        self._setup_output_files()
+
+    def _setup_translation_prompt(self) -> str:
+        """翻訳方向に応じたプロンプトテンプレートを設定"""
+        source_name = LanguageConfig.get_language_name(self.lang_config.source_lang)
+        target_name = LanguageConfig.get_language_name(self.lang_config.target_lang)
+        
+        # 基本プロンプトテンプレート
+        return (f"以下の{source_name}を文脈を考慮して適切な${target_name}に翻訳してください。"
+                f"文脈を考慮しつつ、自然な${target_name}になるよう翻訳してください。"
+                f"翻訳のみを出力し、説明や注記などの出力は一切不要です。\n\n"
+                f"Previous context:\n"
+                f"{{context}}\n\n"
+                f"Current text to translate:\n"
+                f"{{text}}\n\n"
+                f"{target_name}訳:"
+        )
+
+    def _setup_generation_params(self) -> Dict:
+        """プラットフォームに応じた生成パラメータを設定"""
         if sys.platform == 'darwin':
-            self.generation_params = {
+            return {
                 "temp": 0.8,
                 "top_p": 0.95,
                 "max_tokens": 256,
@@ -42,7 +71,7 @@ class Translation:
                 "repetition_context_size": 20,
             }
         else:
-            self.generation_params = {
+            return {
                 "do_sample": True,
                 "temperature": 0.8,
                 "top_p": 0.95,
@@ -50,15 +79,22 @@ class Translation:
                 "max_new_tokens": 256,
                 "repetition_penalty": 1.1,
             }
-        self.load_model()
 
+    def _setup_output_files(self):
+        """出力ファイルの設定"""
         os.makedirs(self.args.output_dir, exist_ok=True)
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_file_path = os.path.join(self.args.output_dir,
-                                          f"translated_audio_log_{current_time}.txt")
-        self.bilingual_log_file_path = os.path.join(self.args.output_dir,
-                                                    f"bilingual_translation_log_{current_time}.txt")
-
+        
+        # ファイル名に言語方向を含める
+        direction_suffix = f"{self.lang_config.source_lang}-{self.lang_config.target_lang}"
+        self.log_file_path = os.path.join(
+            self.args.output_dir,
+            f"translated_text_log_{direction_suffix}_{current_time}.txt"
+        )
+        self.bilingual_log_file_path = os.path.join(
+            self.args.output_dir,
+            f"bilingual_translation_log_{direction_suffix}_{current_time}.txt"
+        )
 
     def load_model(self):
         try:
@@ -125,7 +161,10 @@ class Translation:
                     if self.is_valid_translation(translated_text):
                         print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
-                        bilingual_texts.append(f"原文: {processed_text}\n翻訳: {translated_text}\n")
+                        bilingual_texts.append(
+                            f"原文 ({self.lang_config.source_lang}): {processed_text}\n"
+                            f"訳文 ({self.lang_config.target_lang}): {translated_text}\n"
+                        )
                         self.context_window.append(processed_text)
                         self.consecutive_errors = 0
                     else:
@@ -158,13 +197,13 @@ class Translation:
                         + "\n\nCurrent text to translate:\n"
             )
 
-        prompt = ("以下の英語を文脈を考慮して適切な日本語に翻訳してください。"
-                  "文脈を考慮しつつ、自然な日本語になるよう翻訳してください。"
-                  "翻訳のみを出力し、説明や注記などの出力は一切不要です。\n\n"
-                 f"{context_str}{text}\n\n"
-                  "日本語訳:"
+        # プロンプトの構築
+        prompt = self.prompt_template.format(
+            context=context_str,
+            text=text
         )
 
+        # チャットテンプレートの適用
         if hasattr(self.llm_tokenizer, "apply_chat_template") and self.llm_tokenizer.chat_template is not None:
             messages = [{"role": "user", "content": prompt}]
             prompt = self.llm_tokenizer.apply_chat_template(

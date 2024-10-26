@@ -8,33 +8,8 @@ from audio.capture import AudioCapture
 from audio.processing import AudioProcessing
 from recognition.speech_recognition import SpeechRecognition
 from utils.resource_manager import ResourceManager
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Real-time Audio Transcription")
-    if sys.platform == 'darwin':
-        parser.add_argument("--model-path", type=str, default="mlx-community/whisper-large-v3-turbo",
-                            help="Path or HuggingFace repo for the Whisper model")
-    parser.add_argument("--model-size", default="large-v3-turbo",
-                        choices=["tiny", "base", "small", "medium", "large-v3", "large-v3-turbo", "turbo"],
-                        help="Model size for Whisper (default: medium)")
-    parser.add_argument("--language", type=str, default="ja",
-                        help="Language code for speech recognition (e.g., 'en' for English, 'ja' for Japanese)")
-    parser.add_argument("--format", type=str, default="int16",
-                        choices=['int8', 'int16', 'int32', 'float32'],
-                        help="Audio format (default: int16)")
-    parser.add_argument("--rate", type=int, default=16000,
-                        help="Sample rate (default: 16000)")
-    parser.add_argument("--channels", type=int, default=1,
-                        help="Number of channels (default: 1)")
-    parser.add_argument("--chunk", type=int, default=1024,
-                        help="Chunk size (default: 1024)")
-    parser.add_argument("--input-device", type=int, help="Input device index (default: auto-detect Black Hole)")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    parser.add_argument("--buffer-duration", type=float, default=5.0,
-                        help="Duration of audio buffer in seconds (default: 5.0)")
-    parser.add_argument("--output-dir", type=str, default="logs",
-                        help="Directory where log files for recognized and translated audio will be saved. Default is 'logs'.")
-    return parser.parse_args()
+from language_config import LanguageConfig
+from argument_config import parse_args_transcription
 
 class AudioTranscriptionSystem:
     def __init__(self, audio_capture, audio_processing, speech_recognition, resource_manager):
@@ -68,8 +43,12 @@ class AudioTranscriptionSystem:
         print("プログラムを終了しました。")
 
 def main():
-    args = parse_arguments()
+    args = parse_args_transcription()
     config = AudioConfig(args)
+    lang_config = LanguageConfig(
+        source_lang=args.source_lang,
+        target_lang=None  # 翻訳を行わないのでNoneを設定
+    )
     resource_manager = ResourceManager()
     
     audio_queue = queue.Queue()
@@ -77,7 +56,7 @@ def main():
     
     audio_capture = AudioCapture(config, audio_queue, args)
     audio_processing = AudioProcessing(config, audio_queue, processing_queue)
-    speech_recognition = SpeechRecognition(config, processing_queue, None, args)
+    speech_recognition = SpeechRecognition(config, processing_queue, None, args, lang_config)
     
     system = AudioTranscriptionSystem(
         audio_capture, audio_processing, speech_recognition, resource_manager
