@@ -5,6 +5,7 @@ import threading
 import queue
 import time
 import gc
+from collections import deque
 
 if sys.platform == 'darwin':
     from mlx_lm import load, generate
@@ -27,6 +28,10 @@ class Translation:
         self.llm_model = None
         self.llm_tokenizer = None
         self.batch_size = args.batch_size if hasattr(args, 'batch_size') else 5  # デフォルト値は5
+
+        # 文脈管理用の変数
+        self.context_window = deque(maxlen=8)  # 直近8つの文脈を保持
+        self.context_separator = "\n"  # 文脈間の区切り文字
 
         if sys.platform == 'darwin':
             self.generation_params = {
@@ -121,6 +126,7 @@ class Translation:
                         print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
                         bilingual_texts.append(f"原文: {processed_text}\n翻訳: {translated_text}\n")
+                        self.context_window.append(processed_text)
                         self.consecutive_errors = 0
                     else:
                         if self.args.debug:
@@ -144,7 +150,20 @@ class Translation:
             self.check_model_reload()
 
     def translate_text(self, text):
-        prompt = f"以下の英語を日本語に翻訳してください。翻訳のみを出力し、余計な説明は不要です:\n\n{text}\n\n日本語訳:"
+        # 文脈（原文のみ）を含むプロンプトを構築
+        context_str = ""
+        if self.context_window:
+            context_str = ("Previous context:\n"
+                        + self.context_separator.join(self.context_window)
+                        + "\n\nCurrent text to translate:\n"
+            )
+
+        prompt = ("以下の英語を文脈を考慮して適切な日本語に翻訳してください。"
+                  "文脈を考慮しつつ、自然な日本語になるよう翻訳してください。"
+                  "翻訳のみを出力し、説明や注記などの出力は一切不要です。\n\n"
+                 f"{context_str}{text}\n\n"
+                  "日本語訳:"
+        )
 
         if hasattr(self.llm_tokenizer, "apply_chat_template") and self.llm_tokenizer.chat_template is not None:
             messages = [{"role": "user", "content": prompt}]

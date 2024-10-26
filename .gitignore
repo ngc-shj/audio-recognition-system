@@ -44,3 +44,4 @@ data/
 # macOS
 **/.DS_Store
 
+logs/
