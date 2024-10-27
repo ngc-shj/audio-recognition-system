@@ -14,9 +14,10 @@ class ResourceManager:
 
     def set_resource_limits(self):
         # CPUタイムを300秒に制限
-        resource.setrlimit(resource.RLIMIT_CPU, (300, 300))
+        #resource.setrlimit(resource.RLIMIT_CPU, (300, 300))
         # メモリ使用量を8GBに制限
         #resource.setrlimit(resource.RLIMIT_AS, (8 * 1024 * 1024 * 1024, -1))
+        pass
 
     def get_optimal_thread_count(self):
         cpu_usage = psutil.cpu_percent()

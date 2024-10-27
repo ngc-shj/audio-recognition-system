@@ -16,11 +16,11 @@ else:
     from transformers import AutoModelForCausalLM, AutoTokenizer, logging
 
 class Translation:
-    def __init__(self, translation_queue, args, lang_config):
+    def __init__(self, translation_queue, args, lang_config, tts_queue=None):
         self.translation_queue = translation_queue
         self.args = args
         self.lang_config = lang_config
-        self.prompt_template = self._setup_translation_prompt()
+        self.tts_queue = tts_queue
 
         self.last_reload_time = time.time()
         self.reload_interval = 7200  # 120分ごとにモデルを再ロード
@@ -34,10 +34,12 @@ class Translation:
         self.llm_tokenizer = None
         self.batch_size = args.batch_size if hasattr(args, 'batch_size') else 5  # デフォルト値は5
 
-        # 文脈管理用の変数
+        # 文脈管理用の変数（原文のみ保持）
         self.context_window = deque(maxlen=8)  # 直近8つの文脈を保持
         self.context_separator = "\n"  # 文脈間の区切り文字
 
+        # プロンプトテンプレートの設定
+        self.prompt_template = self._setup_translation_prompt()
         # 生成パラメータの設定
         self.generation_params = self._setup_generation_params()
         
@@ -169,6 +171,11 @@ class Translation:
                         )
                         self.context_window.append(processed_text)
                         self.consecutive_errors = 0
+
+                        # TTSキューが設定されている場合、翻訳テキストを送信
+                        if self.tts_queue:
+                            self.tts_queue.put(translated_text)
+
                     else:
                         if self.args.debug:
                             print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {text}\n")

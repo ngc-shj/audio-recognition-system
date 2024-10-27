@@ -1,9 +1,14 @@
-mlx-lm; sys_platform == 'darwin'
-torch
-transformers
+wheel
+mlx-lm>=0.0.10; sys_platform == 'darwin'
+torch>=2.0.0
+transformers>=4.36.0
 accelerate
-pyaudio
+pyaudio>0.2.13
 mlx-whisper; sys_platform == 'darwin'
 openai-whisper; sys_platform != 'darwin'
-noisereduce
+noisereduce>=2.0.1
 psutil
+parallel-wavegan>=0.5.4
+scipy==1.12.0
+numpy==1.26.4
+git+https://github.com/huggingface/parler-tts.git
