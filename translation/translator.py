@@ -5,6 +5,7 @@ import threading
 import queue
 import time
 import gc
+import torch
 from language_config import LanguageConfig
 from collections import deque
 from typing import Dict
@@ -12,7 +13,6 @@ from typing import Dict
 if sys.platform == 'darwin':
     from mlx_lm import load, generate
 else:
-    import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, logging
 
 class Translation:
@@ -50,8 +50,8 @@ class Translation:
         target_name = LanguageConfig.get_language_name(self.lang_config.target_lang)
         
         # 基本プロンプトテンプレート
-        return (f"以下の{source_name}を文脈を考慮して適切な${target_name}に翻訳してください。"
-                f"文脈を考慮しつつ、自然な${target_name}になるよう翻訳してください。"
+        return (f"以下の{source_name}を文脈を考慮して適切な{target_name}に翻訳してください。"
+                f"文脈を考慮しつつ、自然な{target_name}になるよう翻訳してください。"
                 f"翻訳のみを出力し、説明や注記などの出力は一切不要です。\n\n"
                 f"Previous context:\n"
                 f"{{context}}\n\n"
@@ -101,6 +101,8 @@ class Translation:
             if sys.platform == 'darwin':
                 del self.llm_model
                 del self.llm_tokenizer
+                if torch.backends.mps.is_available():
+                    torch.mps.empty_cache()
                 gc.collect()
                 self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.args.llm_model)
             else:
@@ -192,10 +194,7 @@ class Translation:
         # 文脈（原文のみ）を含むプロンプトを構築
         context_str = ""
         if self.context_window:
-            context_str = ("Previous context:\n"
-                        + self.context_separator.join(self.context_window)
-                        + "\n\nCurrent text to translate:\n"
-            )
+            context_str = self.context_separator.join(self.context_window)
 
         # プロンプトの構築
         prompt = self.prompt_template.format(
