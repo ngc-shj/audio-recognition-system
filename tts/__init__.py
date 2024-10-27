@@ -1,1 +1,1 @@
-from .parler import TextToSpeech, TTSConfig
+from .melo import TextToSpeech, TTSConfig

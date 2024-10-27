@@ -11,7 +11,7 @@ from translation.translator import Translation
 from utils.resource_manager import ResourceManager
 from language_config import LanguageConfig
 from argument_config import parse_args_translation
-from tts.parler import TextToSpeech, TTSConfig
+from tts.melo import TextToSpeech, TTSConfig
 
 class AudioRecognitionSystem:
     def __init__(self, audio_capture, audio_processing, speech_recognition, translation, tts, resource_manager):
@@ -32,7 +32,7 @@ class AudioRecognitionSystem:
             threading.Thread(target=self.translation.translation_thread, args=(self.is_running,))
         ]
         if self.tts:
-            threading.Thread(target=self.tts.tts_thread, args=(self.is_running,))
+            threads.append(threading.Thread(target=self.tts.tts_thread, args=(self.is_running,)))
 
         for thread in threads:
             thread.start()
@@ -69,11 +69,7 @@ def main():
     translation = Translation(translation_queue, args, lang_config, tts_queue)
 
     if args.tts_enabled:
-        tts_config = TTSConfig(
-            model_tag=args.tts_model,
-            device=args.tts_device,
-            voice_description=args.voice_description
-        )
+        tts_config = TTSConfig.from_args(args)
         tts = TextToSpeech(tts_config, tts_queue, args)
     else:
         tts = None

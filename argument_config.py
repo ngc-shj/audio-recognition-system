@@ -118,29 +118,58 @@ def setup_output_args(parser: argparse.ArgumentParser) -> None:
 def setup_tts_args(parser: argparse.ArgumentParser) -> None:
     """TTS関連の引数を設定"""
     tts_group = parser.add_argument_group('TTS Settings')
+    
+    # 基本設定
     tts_group.add_argument(
         "--tts-enabled",
         action="store_true",
         help="Enable text-to-speech output"
     )
     tts_group.add_argument(
-        "--tts-model",
+        "--tts-language",
         type=str,
-        default="parler-tts/parler-tts-mini-v1",
-        help="Model tag for Parler TTS"
+        default="JP",
+        choices=["JP", "EN"],
+        help="Language for TTS (default: JP)"
     )
     tts_group.add_argument(
         "--tts-device",
         type=str,
-        default="cpu",
-        choices=["cpu", "cuda"],
-        help="Device for TTS inference"
+        default="auto",
+        help="Device for TTS (auto/cpu/cuda/mps)"
+    )
+    
+    # 音声生成パラメータ
+    tts_group.add_argument(
+        "--tts-speed",
+        type=float,
+        default=1.0,
+        help="Speech speed (default: 1.0)"
     )
     tts_group.add_argument(
-        "--voice-description",
-        type=str,
-        default="The voice is clear and natural, with a professional tone and moderate pace.",
-        help="Description of the voice characteristics for TTS"
+        "--tts-sdp-ratio",
+        type=float,
+        default=0.2,
+        help="SDP ratio for voice generation (default: 0.2)"
+    )
+    tts_group.add_argument(
+        "--tts-noise-scale",
+        type=float,
+        default=0.6,
+        help="Noise scale for voice variation (default: 0.6)"
+    )
+    tts_group.add_argument(
+        "--tts-noise-scale-w",
+        type=float,
+        default=0.8,
+        help="Noise scale w for voice stability (default: 0.8)"
+    )
+    
+    # 詳細設定
+    tts_group.add_argument(
+        "--tts-quiet",
+        action="store_true",
+        help="Disable progress bar in TTS generation"
     )
 
 def get_parser_transcription() -> argparse.ArgumentParser:
