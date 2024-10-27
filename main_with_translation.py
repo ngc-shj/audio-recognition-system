@@ -29,9 +29,10 @@ class AudioRecognitionSystem:
             threading.Thread(target=self.audio_capture.capture_thread, args=(self.is_running,)),
             threading.Thread(target=self.audio_processing.processing_thread, args=(self.is_running,)),
             threading.Thread(target=self.speech_recognition.recognition_thread, args=(self.is_running,)),
-            threading.Thread(target=self.translation.translation_thread, args=(self.is_running,)),
-            threading.Thread(target=self.tts.tts_thread, args=(self.is_running,))
+            threading.Thread(target=self.translation.translation_thread, args=(self.is_running,))
         ]
+        if self.tts:
+            threading.Thread(target=self.tts.tts_thread, args=(self.is_running,))
 
         for thread in threads:
             thread.start()
@@ -74,6 +75,8 @@ def main():
             voice_description=args.voice_description
         )
         tts = TextToSpeech(tts_config, tts_queue, args)
+    else:
+        tts = None
     
     system = AudioRecognitionSystem(
         audio_capture, audio_processing, speech_recognition, translation, tts, resource_manager
