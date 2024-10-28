@@ -13,6 +13,7 @@ from melo.api import TTS
 class TTSConfig:
     """MeloTTS設定を管理するデータクラス"""
     language: str = "JP"
+    speaker: str = None
     device: str = "auto"
     speed: float = 1.0
     sdp_ratio: float = 0.2
@@ -24,6 +25,7 @@ class TTSConfig:
     def from_args(cls, args: argparse.Namespace) -> 'TTSConfig':
         return cls(
             language=args.tts_language,
+            speaker=args.tts_speaker or ("EN-Default" if args.tts_language == "EN" else args.tts_language),
             device=args.tts_device,
             speed=args.tts_speed,
             sdp_ratio=args.tts_sdp_ratio,
@@ -51,7 +53,7 @@ class TextToSpeech:
                 language=self.config.language,
                 device=self.config.device
             )
-            self.speaker_id = self.model.hps.data.spk2id[self.config.language]
+            self.speaker_id = self.model.hps.data.spk2id[self.config.speaker]
 
             if self.args.debug:
                 print("TTS model loaded successfully")

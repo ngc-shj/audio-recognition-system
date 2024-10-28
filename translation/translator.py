@@ -52,8 +52,10 @@ class Translation:
         target_name = LanguageConfig.get_language_name(self.lang_config.target_lang)
         
         # 基本プロンプトテンプレート
-        return (f"以下の{source_name}を文脈を考慮して適切な{target_name}に翻訳してください。"
+        return (f"以下のCurrent text to translateで示した{source_name}のテキストを、"
+                f"Previous contextで示した文脈を考慮して適切な{target_name}に翻訳してください。"
                 f"文脈を考慮しつつ、自然な{target_name}になるよう翻訳してください。"
+                f"文脈は参考情報としてのみ使用し、翻訳の対象には含めないでください。"
                 f"翻訳のみを出力し、説明や注記などの出力は一切不要です。\n\n"
                 f"Previous context:\n"
                 f"{{context}}\n\n"

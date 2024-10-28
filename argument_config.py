@@ -16,7 +16,7 @@ def setup_model_args(parser: argparse.ArgumentParser) -> None:
         "--model-size",
         default="large-v3-turbo",
         choices=["tiny", "base", "small", "medium", "large-v3", "large-v3-turbo", "turbo"],
-        help="Model size for Whisper (default: large-v3-turbo)"
+        help="Model size for Whisper"
     )
 
 def setup_llm_args(parser: argparse.ArgumentParser) -> None:
@@ -51,25 +51,25 @@ def setup_audio_args(parser: argparse.ArgumentParser) -> None:
         type=str,
         default="int16",
         choices=['int8', 'int16', 'int32', 'float32'],
-        help="Audio format (default: int16)"
+        help="Audio format"
     )
     audio_group.add_argument(
         "--rate",
         type=int,
         default=16000,
-        help="Sample rate (default: 16000)"
+        help="Sample rate"
     )
     audio_group.add_argument(
         "--channels",
         type=int,
         default=1,
-        help="Number of channels (default: 1)"
+        help="Number of channels"
     )
     audio_group.add_argument(
         "--chunk",
         type=int,
         default=1024,
-        help="Chunk size (default: 1024)"
+        help="Chunk size"
     )
     audio_group.add_argument(
         "--input-device",
@@ -80,7 +80,7 @@ def setup_audio_args(parser: argparse.ArgumentParser) -> None:
         "--buffer-duration",
         type=float,
         default=5.0,
-        help="Duration of audio buffer in seconds (default: 5.0)"
+        help="Duration of audio buffer in seconds"
     )
 
 def setup_language_args(parser: argparse.ArgumentParser, translation: bool = False) -> None:
@@ -107,7 +107,7 @@ def setup_output_args(parser: argparse.ArgumentParser) -> None:
         "--output-dir",
         type=str,
         default="logs",
-        help="Directory where log files will be saved (default: 'logs')"
+        help="Directory where log files will be saved"
     )
     output_group.add_argument(
         "--debug",
@@ -129,8 +129,14 @@ def setup_tts_args(parser: argparse.ArgumentParser) -> None:
         "--tts-language",
         type=str,
         default="JP",
-        choices=["JP", "EN"],
-        help="Language for TTS (default: JP)"
+        choices=["EN", "ES", "FR", "ZH", "JP", "KR"],
+        help="Language for TTS"
+    )
+    tts_group.add_argument(
+        "--tts-speaker",
+        type=str,
+        choices=["EN-Default", "EN-US", "EN-BR", "EN_INDIA", "EN-AU"],
+        help="Speaker ID, only for English, leave empty for default, ignored if not English. If English, defaults to 'EN-Default'"
     )
     tts_group.add_argument(
         "--tts-device",
@@ -144,25 +150,25 @@ def setup_tts_args(parser: argparse.ArgumentParser) -> None:
         "--tts-speed",
         type=float,
         default=1.0,
-        help="Speech speed (default: 1.0)"
+        help="Speech speed"
     )
     tts_group.add_argument(
         "--tts-sdp-ratio",
         type=float,
         default=0.2,
-        help="SDP ratio for voice generation (default: 0.2)"
+        help="SDP ratio for voice generation"
     )
     tts_group.add_argument(
         "--tts-noise-scale",
         type=float,
         default=0.6,
-        help="Noise scale for voice variation (default: 0.6)"
+        help="Noise scale for voice variation"
     )
     tts_group.add_argument(
         "--tts-noise-scale-w",
         type=float,
         default=0.8,
-        help="Noise scale w for voice stability (default: 0.8)"
+        help="Noise scale w for voice stability"
     )
     
     # 詳細設定
