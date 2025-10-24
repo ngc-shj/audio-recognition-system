@@ -5,18 +5,40 @@ if sys.platform != 'win32':
     import resource
 
 class ResourceManager:
-    def __init__(self, min_threads=2, max_threads=8):
-        self.min_threads = min_threads
-        self.max_threads = max_threads
-        self.current_threads = min_threads
+    def __init__(self, config_manager=None, min_threads: int = 2, max_threads: int = 8):
+        if config_manager and hasattr(config_manager, 'resources'):
+            res_config = config_manager.resources
+            self.min_threads = res_config.min_threads
+            self.max_threads = res_config.max_threads
+            self.cpu_time_limit = res_config.cpu_time_limit
+            self.memory_limit = res_config.memory_limit
+        else:
+            self.min_threads = min_threads
+            self.max_threads = max_threads
+            self.cpu_time_limit = 300
+            self.memory_limit = None
+        
+        self.current_threads = self.min_threads
+
         if sys.platform != 'win32':
             self.set_resource_limits()
 
     def set_resource_limits(self):
-        # CPUタイムを300秒に制限
-        resource.setrlimit(resource.RLIMIT_CPU, (300, 300))
-        # メモリ使用量を8GBに制限
-        #resource.setrlimit(resource.RLIMIT_AS, (8 * 1024 * 1024 * 1024, -1))
+        try:
+            # CPUタイムの制限
+            resource.setrlimit(resource.RLIMIT_CPU, 
+                             (self.cpu_time_limit, self.cpu_time_limit))
+            
+            # メモリ制限（設定されている場合のみ）
+            if self.memory_limit:
+                resource.setrlimit(resource.RLIMIT_AS, 
+                                 (self.memory_limit, -1))
+                print(f"メモリ制限を設定: {self.memory_limit / (1024**3):.1f}GB")
+            
+            print(f"CPU時間制限を設定: {self.cpu_time_limit}秒")
+                
+        except Exception as e:
+            print(f"リソース制限の設定に失敗しました: {e}")
 
     def get_optimal_thread_count(self):
         cpu_usage = psutil.cpu_percent()
@@ -26,10 +48,45 @@ class ResourceManager:
             self.current_threads = min(self.max_threads, self.current_threads + 1)
         return self.current_threads
 
-    def monitor_resources(self):
+    def monitor_resources(self, interval: int = 5):
         while True:
-            cpu_percent = psutil.cpu_percent()
-            memory_percent = psutil.virtual_memory().percent
-            print(f"CPU使用率: {cpu_percent}%, メモリ使用率: {memory_percent}%")
-            time.sleep(5)  # 5秒ごとに更新
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            memory_percent = memory.percent
+            
+            print(f"CPU使用率: {cpu_percent:.1f}% | "
+                  f"メモリ使用率: {memory_percent:.1f}% "
+                  f"({memory.used / (1024**3):.1f}GB / {memory.total / (1024**3):.1f}GB)")
+            
+            time.sleep(interval)
+
+    def get_system_info(self) -> dict:
+        memory = psutil.virtual_memory()
+        
+        return {
+            'cpu_count': psutil.cpu_count(),
+            'cpu_percent': psutil.cpu_percent(),
+            'memory_total_gb': memory.total / (1024**3),
+            'memory_available_gb': memory.available / (1024**3),
+            'memory_percent': memory.percent,
+            'platform': sys.platform,
+            'current_threads': self.current_threads,
+            'min_threads': self.min_threads,
+            'max_threads': self.max_threads,
+        }
+
+    def print_system_info(self):
+        """システム情報を表示"""
+        info = self.get_system_info()
+        print("\n" + "="*50)
+        print("システム情報")
+        print("="*50)
+        print(f"プラットフォーム: {info['platform']}")
+        print(f"CPUコア数: {info['cpu_count']}")
+        print(f"CPU使用率: {info['cpu_percent']:.1f}%")
+        print(f"メモリ合計: {info['memory_total_gb']:.1f} GB")
+        print(f"メモリ利用可能: {info['memory_available_gb']:.1f} GB")
+        print(f"メモリ使用率: {info['memory_percent']:.1f}%")
+        print(f"スレッド設定: {info['min_threads']}-{info['max_threads']} (現在: {info['current_threads']})")
+        print("="*50 + "\n")
 

@@ -6,7 +6,6 @@ import wave
 import time
 import numpy as np
 import pyaudio
-from language_config import LanguageConfig
 
 if sys.platform == 'darwin':
     import mlx_whisper
@@ -14,21 +13,36 @@ else:
     import whisper
 
 class SpeechRecognition:
-    def __init__(self, config, processing_queue, translation_queue, args, lang_config):
-        self.config = config
+    def __init__(self, audio_config, processing_queue, translation_queue,
+                 config_manager, lang_config, debug=False):
+        self.config = audio_config
         self.processing_queue = processing_queue
         self.translation_queue = translation_queue
-        self.args = args
         self.lang_config = lang_config
+        self.debug = debug
+        
+        # ConfigManagerから設定を取得
+        if hasattr(config_manager, 'get_model_config'):
+            # ConfigManagerの場合
+            model_config = config_manager.get_model_config('asr')
+            self.model_path = model_config.model_path
+            self.model_size = model_config.model_size
+            output_config = config_manager.output
+            self.output_dir = output_config.directory
+        else:
+            # 互換アダプターの場合
+            self.model_path = getattr(config_manager, 'model_path', None)
+            self.model_size = getattr(config_manager, 'model_size', 'large-v3-turbo')
+            self.output_dir = getattr(config_manager, 'output_dir', 'logs')
 
         if sys.platform != 'darwin':
-            self.model = whisper.load_model(self.args.model_size)
+            self.model = whisper.load_model(self.model_size)
 
-        os.makedirs(self.args.output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file_path = os.path.join(
-            self.args.output_dir,
-            f"recognized_audio_log_{self.lang_config.source_lang}_{current_time}.txt"
+            self.output_dir,
+            f"recognized_audio_log_{lang_config.source}_{current_time}.txt"
         )
 
     def recognition_thread(self, is_running):
@@ -39,19 +53,21 @@ class SpeechRecognition:
                 audio_data = self.processing_queue.get(timeout=1)
                 normalized_audio = self.normalize_audio(audio_data)
                 
-                if self.args.debug:
+                if self.debug:
                     print("\n音声認識処理開始")
                     self.save_audio_debug(audio_data, f"debug_audio_{time.time()}.wav")
                 
                 try:
                     if sys.platform == 'darwin':
-                        result = mlx_whisper.transcribe(normalized_audio,
-                                                        language=self.lang_config.source_lang,
-                                                        path_or_hf_repo=self.args.model_path
+                        result = mlx_whisper.transcribe(
+                            normalized_audio,
+                            language=self.lang_config.source,
+                            path_or_hf_repo=self.model_path
                         )
                     else:
-                        result = self.model.transcribe(normalized_audio,
-                                                       language=self.lang_config.source_lang
+                        result = self.model.transcribe(
+                            normalized_audio,
+                            language=self.lang_config.source
                         )
                 except Exception as e:
                     print(f"音声認識エラー: {e}")
@@ -69,31 +85,31 @@ class SpeechRecognition:
                     with open(self.log_file_path, "a", encoding="utf-8") as log_file:
                         log_file.write(text + "\n")
 
-                elif self.args.debug:
+                elif self.debug:
                     print("処理後のテキストが空か、直前の文と同じため出力をスキップします")
 
             except queue.Empty:
-                if self.args.debug:
+                if self.debug:
                     print("認識キューが空です")
             except Exception as e:
                 print(f"\nエラー (認識スレッド): {e}", flush=True)
 
     def normalize_audio(self, audio_data):
-        if self.config.FORMAT == pyaudio.paFloat32:
+        if self.config.format == pyaudio.paFloat32:
             return np.clip(audio_data, -1.0, 1.0)
-        elif self.config.FORMAT == pyaudio.paInt8:
+        elif self.config.format == pyaudio.paInt8:
             return audio_data.astype(np.float32) / 128.0
-        elif self.config.FORMAT == pyaudio.paInt16:
+        elif self.config.format == pyaudio.paInt16:
             return audio_data.astype(np.float32) / 32768.0
-        elif self.config.FORMAT == pyaudio.paInt32:
+        elif self.config.format == pyaudio.paInt32:
             return audio_data.astype(np.float32) / 2147483648.0
         else:
-            raise ValueError(f"Unsupported audio format: {self.config.FORMAT}")
+            raise ValueError(f"Unsupported audio format: {self.config.format}")
 
     def save_audio_debug(self, audio_data, filename):
         with wave.open(filename, 'wb') as wf:
             wf.setnchannels(self.config.CHANNELS)
-            wf.setsampwidth(pyaudio.get_sample_size(self.config.FORMAT))
+            wf.setsampwidth(pyaudio.get_sample_size(self.config.format))
             wf.setframerate(self.config.RATE)
             wf.writeframes(audio_data.tobytes())
 
