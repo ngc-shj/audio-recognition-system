@@ -1,0 +1,153 @@
+# ========================================
+# Audio Recognition System Configuration
+# ========================================
+
+# モデル設定
+models:
+  # 音声認識モデル (Whisper)
+  asr:
+    darwin:  # macOS
+      model_path: "mlx-community/whisper-large-v3-turbo"
+      model_size: "large-v3-turbo"
+    default:  # Linux/Windows
+      model_path: null  # Whisperの自動ダウンロード
+      model_size: "large-v3-turbo"
+  
+  # 翻訳モデル (LLM)
+  translation:
+    darwin:  # macOS
+      model_path: "mlx-community/llm-jp-3-3.7b-instruct"
+    default:  # Linux/Windows
+      model_path: "llm-jp/llm-jp-3-3.7b-instruct"
+    
+    # モデル再読み込み設定
+    reload:
+      interval_seconds: 7200  # 120分 (2時間)
+      interval_seconds_darwin: 7200  # macOS: 1分
+    
+    # エラーハンドリング
+    error_handling:
+      max_consecutive_errors: 1
+      error_cooldown_seconds: 2
+      retry_failed_translations: true
+
+# 音声入力設定
+audio:
+  format: "int16"  # int8, int16, int32, float32
+  sample_rate: 16000
+  channels: 1
+  chunk_size: 1024
+  buffer_duration: 5.0  # 秒
+  
+  # 音声検出設定
+  voice_detection:
+    silence_threshold: 0.005
+    voice_activity_threshold: 0.01
+    silence_duration: 1.0  # 秒
+  
+  # 入力デバイス (nullで自動検出)
+  input_device: null
+
+# 言語設定
+language:
+  source: "en"  # 音声認識の入力言語
+  target: "ja"  # 翻訳の出力言語
+
+# 翻訳設定
+translation:
+  enabled: true
+  batch_size: 5
+  
+  # コンテキスト管理
+  context:
+    window_size: 8  # 保持する過去の文脈数
+    separator: "\n"
+  
+  # 生成パラメータ
+  generation:
+    darwin:
+      max_tokens: 256
+      temperature: 0.8
+      top_p: 0.95
+      repetition_penalty: 1.1
+      repetition_context_size: 20
+    default:
+      max_new_tokens: 256
+      temperature: 0.8
+      top_p: 0.95
+      top_k: 40
+      repetition_penalty: 1.1
+      do_sample: true
+
+# 出力設定
+output:
+  directory: "logs"
+  
+  # ログファイル設定
+  logging:
+    recognized_audio: true
+    translated_text: true
+    bilingual_log: true
+  
+  # ファイル名フォーマット
+  filename_format:
+    timestamp: "%Y%m%d_%H%M%S"
+    recognized: "recognized_audio_log_{lang}_{timestamp}.txt"
+    translated: "translated_text_log_{source}-{target}_{timestamp}.txt"
+    bilingual: "bilingual_translation_log_{source}-{target}_{timestamp}.txt"
+
+# システムリソース設定
+resources:
+  threads:
+    min: 2
+    max: 8
+  
+  # リソース制限 (macOS/Linux)
+  limits:
+    cpu_time_seconds: 300
+    # memory_bytes: 8589934592  # 8GB (コメントアウト推奨)
+
+# デバッグ設定
+debug:
+  enabled: false
+  save_audio_samples: false
+  verbose_logging: false
+  print_model_info: false
+
+# プロファイル設定 (環境別)
+profiles:
+  development:
+    debug:
+      enabled: true
+      verbose_logging: true
+    models:
+      asr:
+        darwin:
+          model_size: "base"  # 高速化
+      translation:
+        darwin:
+          model_path: "mlx-community/Llama-3.2-3B-Instruct-4bit"  # 軽量モデル
+    translation:
+      batch_size: 2
+  
+  production:
+    debug:
+      enabled: false
+    models:
+      asr:
+        darwin:
+          model_size: "large-v3-turbo"
+    output:
+      logging:
+        recognized_audio: true
+        translated_text: true
+        bilingual_log: true
+  
+  testing:
+    debug:
+      enabled: true
+      save_audio_samples: true
+    audio:
+      buffer_duration: 2.0
+    translation:
+      batch_size: 1
