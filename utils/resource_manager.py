@@ -1,9 +1,6 @@
 import sys
 import psutil
 
-if sys.platform != 'win32':
-    import resource
-
 class ResourceManager:
     def __init__(self, config_manager=None, min_threads: int = 2, max_threads: int = 8):
         if config_manager and hasattr(config_manager, 'resources'):
@@ -19,26 +16,6 @@ class ResourceManager:
             self.memory_limit = None
         
         self.current_threads = self.min_threads
-
-        if sys.platform != 'win32':
-            self.set_resource_limits()
-
-    def set_resource_limits(self):
-        try:
-            # CPUタイムの制限
-            resource.setrlimit(resource.RLIMIT_CPU, 
-                             (self.cpu_time_limit, self.cpu_time_limit))
-            
-            # メモリ制限（設定されている場合のみ）
-            if self.memory_limit:
-                resource.setrlimit(resource.RLIMIT_AS, 
-                                 (self.memory_limit, -1))
-                print(f"メモリ制限を設定: {self.memory_limit / (1024**3):.1f}GB")
-            
-            print(f"CPU時間制限を設定: {self.cpu_time_limit}秒")
-                
-        except Exception as e:
-            print(f"リソース制限の設定に失敗しました: {e}")
 
     def get_optimal_thread_count(self):
         cpu_usage = psutil.cpu_percent()

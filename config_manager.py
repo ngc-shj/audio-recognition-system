@@ -112,8 +112,6 @@ class ResourceConfig:
     """リソース設定データクラス"""
     min_threads: int
     max_threads: int
-    cpu_time_limit: int
-    memory_limit: Optional[int] = None
 
 
 class ConfigManager:
@@ -425,8 +423,6 @@ class ConfigManager:
             self._resources = ResourceConfig(
                 min_threads=self.get('resources', 'threads', 'min', default=2),
                 max_threads=self.get('resources', 'threads', 'max', default=8),
-                cpu_time_limit=self.get('resources', 'limits', 'cpu_time_seconds', default=300),
-                memory_limit=self.get('resources', 'limits', 'memory_bytes', default=None),
             )
         
         return self._resources
@@ -494,7 +490,6 @@ if __name__ == "__main__":
     print("\nリソース設定:")
     res = config.resources
     print(f"  スレッド: {res.min_threads}-{res.max_threads}")
-    print(f"  CPU制限: {res.cpu_time_limit}秒")
     
     print("\nすべての設定が型安全に取得できます！")
 

@@ -23,7 +23,7 @@ models:
     # モデル再読み込み設定
     reload:
       interval_seconds: 7200  # 120分 (2時間)
-      interval_seconds_darwin: 7200  # macOS: 1分
+      interval_seconds_darwin: 7200  # macOS: 120分（2時間）
     
     # エラーハンドリング
     error_handling:
@@ -102,11 +102,6 @@ resources:
     min: 2
     max: 8
   
-  # リソース制限 (macOS/Linux)
-  limits:
-    cpu_time_seconds: 300
-    # memory_bytes: 8589934592  # 8GB (コメントアウト推奨)
-
 # デバッグ設定
 debug:
   enabled: false
