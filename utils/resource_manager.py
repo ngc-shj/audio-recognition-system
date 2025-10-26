@@ -7,13 +7,9 @@ class ResourceManager:
             res_config = config_manager.resources
             self.min_threads = res_config.min_threads
             self.max_threads = res_config.max_threads
-            self.cpu_time_limit = res_config.cpu_time_limit
-            self.memory_limit = res_config.memory_limit
         else:
             self.min_threads = min_threads
             self.max_threads = max_threads
-            self.cpu_time_limit = 300
-            self.memory_limit = None
         
         self.current_threads = self.min_threads
 
