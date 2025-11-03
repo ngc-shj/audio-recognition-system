@@ -33,10 +33,22 @@ class AudioConfig:
 
 
 @dataclass
+class GGUFConfig:
+    """GGUF形式モデル設定データクラス"""
+    enabled: bool = False
+    model_path: str = ""
+    model_file: str = ""
+    n_ctx: int = 4096
+    n_gpu_layers: int = -1
+    n_threads: int = 8
+
+
+@dataclass
 class ModelConfig:
     """モデル設定データクラス"""
     model_path: str
     model_size: Optional[str] = None
+    gguf: GGUFConfig = None
 
 
 @dataclass
@@ -350,9 +362,23 @@ class ConfigManager:
         else:
             platform_config = {}
         
+        # GGUF設定を取得
+        gguf_config = GGUFConfig()
+        if 'gguf' in model_config:
+            gguf_data = model_config['gguf']
+            gguf_config = GGUFConfig(
+                enabled=gguf_data.get('enabled', False),
+                model_path=gguf_data.get('model_path', ''),
+                model_file=gguf_data.get('model_file', ''),
+                n_ctx=gguf_data.get('n_ctx', 4096),
+                n_gpu_layers=gguf_data.get('n_gpu_layers', -1),
+                n_threads=gguf_data.get('n_threads', 8)
+            )
+        
         return ModelConfig(
             model_path=platform_config.get('model_path'),
-            model_size=platform_config.get('model_size')
+            model_size=platform_config.get('model_size'),
+            gguf=gguf_config
         )
     
     @property
@@ -470,6 +496,14 @@ if __name__ == "__main__":
     
     trans_model = config.get_model_config('translation')
     print(f"  翻訳モデル: {trans_model.model_path}")
+    
+    print(f"  GGUFモデル使用: {trans_model.gguf.enabled}")
+    if trans_model.gguf.enabled:
+        print(f"    GGUFモデルパス: {trans_model.gguf.model_path}")
+        print(f"    GGUFモデルファイル: {trans_model.gguf.model_file}")
+        print(f"    コンテキストウィンドウ: {trans_model.gguf.n_ctx}")
+        print(f"    GPUレイヤー数: {trans_model.gguf.n_gpu_layers}")
+        print(f"    CPUスレッド数: {trans_model.gguf.n_threads}")
     
     print("\n翻訳設定:")
     trans = config.translation

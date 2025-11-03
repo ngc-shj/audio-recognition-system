@@ -20,6 +20,15 @@ models:
     default:  # Linux/Windows
       model_path: "llm-jp/llm-jp-3-3.7b-instruct"
     
+    # GGUF形式のモデル対応 (Linux/Windows)
+    gguf:
+      enabled: true  # trueに設定するとGGUFモデルを使用
+      model_path: "unsloth/gpt-oss-20b-GGUF"  # Hugging Faceリポジトリまたはローカルパス
+      model_file: "gpt-oss-20b-Q4_K_M.gguf"  # モデルファイル名
+      n_ctx: 4096  # コンテキストウィンドウサイズ
+      n_gpu_layers: -1  # GPU使用レイヤー数 (-1で全レイヤー)
+      n_threads: 8  # CPU使用スレッド数
+
     # モデル再読み込み設定
     reload:
       interval_seconds: 7200  # 120分 (2時間)
@@ -66,16 +75,17 @@ translation:
   # 生成パラメータ
   generation:
     darwin:
-      max_tokens: 256
+      max_tokens: 4096
       temperature: 0.8
-      top_p: 0.95
+      top_p: 1.0
+      top_k: 0
       repetition_penalty: 1.1
       repetition_context_size: 20
     default:
-      max_new_tokens: 256
+      max_new_tokens: 4096
       temperature: 0.8
-      top_p: 0.95
-      top_k: 40
+      top_p: 1.0
+      top_k: 0
       repetition_penalty: 1.1
       do_sample: true
 
