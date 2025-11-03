@@ -16,13 +16,13 @@ models:
   # 翻訳モデル (LLM)
   translation:
     darwin:  # macOS
-      model_path: "mlx-community/llm-jp-3-3.7b-instruct"
+      model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4" # MLX対応モデル
     default:  # Linux/Windows
-      model_path: "llm-jp/llm-jp-3-3.7b-instruct"
+      model_path: "openai/gpt-oss-20b" # Hugging Faceリポジトリまたはローカルパス
     
     # GGUF形式のモデル対応 (Linux/Windows)
     gguf:
-      enabled: true  # trueに設定するとGGUFモデルを使用
+      enabled: false  # trueに設定するとGGUFモデルを使用
       model_path: "unsloth/gpt-oss-20b-GGUF"  # Hugging Faceリポジトリまたはローカルパス
       model_file: "gpt-oss-20b-Q4_K_M.gguf"  # モデルファイル名
       n_ctx: 4096  # コンテキストウィンドウサイズ

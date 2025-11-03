@@ -1,10 +1,27 @@
-mlx-lm>=0.28.0; sys_platform == 'darwin'
-torch>=2.1.0
+# --- Core ---
+pyyaml>=6.0
+psutil
+noisereduce
+scipy>=1.11
+
+# --- Hugging Face / LLM 共通 ---
 transformers>=4.38.0
 accelerate>=0.20.1
+huggingface_hub>=0.23.0
+safetensors>=0.4.0
+sentencepiece>=0.1.99
+protobuf>=4.25.0
+
+# --- Audio I/O ---
 pyaudio
-mlx-whisper>=0.4.0; sys_platform == 'darwin'
-openai-whisper; sys_platform != 'darwin'
-noisereduce
-psutil
-pyyaml>=6.0
+
+# --- macOS (MLX 経路：GGUF 直読み & Whisper MLX) ---
+mlx>=0.29.0; sys_platform == "darwin"
+mlx-lm>=0.28.0; sys_platform == "darwin"
+mlx-whisper>=0.4.0; sys_platform == "darwin"
+
+# --- Windows/Linux （Transformers or llama.cpp 経路）---
+torch>=2.1.0; sys_platform != "darwin"
+openai-whisper; sys_platform != "darwin"
+llama-cpp-python>=0.3.2; sys_platform != "darwin"
+

@@ -24,13 +24,13 @@ if sys.platform == 'darwin':
 else:
     from transformers import AutoModelForCausalLM, AutoTokenizer, logging
     
-    # GGUF形式のモデルをサポート
-    try:
-        from llama_cpp import Llama
-        LLAMA_CPP_AVAILABLE = True
-    except ImportError:
-        LLAMA_CPP_AVAILABLE = False
-        print("INFO: llama-cpp-python not available. GGUF models will not be supported.")
+# GGUF形式のモデルをサポート
+try:
+    from llama_cpp import Llama
+    LLAMA_CPP_AVAILABLE = True
+except ImportError:
+    LLAMA_CPP_AVAILABLE = False
+    print("INFO: llama-cpp-python not available. GGUF models will not be supported.")
 
 
 class Translation:
@@ -113,7 +113,7 @@ class Translation:
         if sys.platform == 'darwin':
             # config.yamlから取得
             temp = self.generation_params.get('temperature', 0.8)
-            top_p = self.generation_params.get('top_p', 0.95)
+            top_p = self.generation_params.get('top_p', 1.0)
             rep_penalty = self.generation_params.get('repetition_penalty', 1.1)
             rep_context = self.generation_params.get('repetition_context_size', 20)
             
@@ -135,14 +135,14 @@ class Translation:
     def _setup_default_generation_params(self) -> Dict:
         """デフォルトの生成パラメータを設定"""
         if sys.platform == 'darwin':
-            return {"max_tokens": 256}
+            return {"max_tokens": 4096}
         else:
             return {
                 "do_sample": True,
                 "temperature": 0.8,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_new_tokens": 256,
+                "top_p": 1.0,
+                "top_k": 0,
+                "max_new_tokens": 4096,
                 "repetition_penalty": 1.1,
             }
 
@@ -189,21 +189,8 @@ class Translation:
             del self.llm_model
             del self.llm_tokenizer
             
-            if sys.platform == 'darwin':
-                # macOS: MLXを使用
-                print(f"翻訳モデルをロード中 (MLX): {self.model_path}")
-                if torch.backends.mps.is_available():
-                    torch.mps.empty_cache()
-                gc.collect()
-                self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.model_path)
-                self.model_type = 'mlx'
-                
-                # GPT-OSSモデルかどうかを判定
-                self.is_gpt_oss = 'gpt-oss' in self.model_path.lower()
-                print(f"翻訳モデルのロード完了 (MLX){' [GPT-OSS]' if self.is_gpt_oss else ''}")
-                
-            elif self.use_gguf and LLAMA_CPP_AVAILABLE:
-                # Linux/Windows: GGUF形式を使用
+            # GGUF形式のモデルを使用するかどうかを判定
+            if self.use_gguf and LLAMA_CPP_AVAILABLE:
                 print(f"翻訳モデルをロード中 (GGUF): {self.gguf_model_path}/{self.gguf_model_file}")
                 
                 if torch.cuda.is_available():
@@ -236,7 +223,18 @@ class Translation:
                 # GPT-OSSモデルかどうかを判定
                 self.is_gpt_oss = 'gpt-oss' in self.gguf_model_path.lower()
                 print(f"翻訳モデルのロード完了 (GGUF){' [GPT-OSS]' if self.is_gpt_oss else ''}")
+            elif sys.platform == 'darwin':
+                # macOS: MLXを使用
+                print(f"翻訳モデルをロード中 (MLX): {self.model_path}")
+                if torch.backends.mps.is_available():
+                    torch.mps.empty_cache()
+                gc.collect()
+                self.llm_model, self.llm_tokenizer = load(path_or_hf_repo=self.model_path)
+                self.model_type = 'mlx'
                 
+                # GPT-OSSモデルかどうかを判定
+                self.is_gpt_oss = 'gpt-oss' in self.model_path.lower()
+                print(f"翻訳モデルのロード完了 (MLX){' [GPT-OSS]' if self.is_gpt_oss else ''}")
             else:
                 # Linux/Windows: transformersを使用
                 print(f"翻訳モデルをロード中 (Transformers): {self.model_path}")
@@ -358,8 +356,8 @@ class Translation:
                     messages, tokenize=False, add_generation_prompt=True
                 )
             
-            max_tokens = self.generation_params.get('max_tokens', 256)
-            response = generate(
+            max_tokens = self.generation_params.get('max_tokens', 4096)
+            output = generate(
                 self.llm_model,
                 self.llm_tokenizer,
                 prompt=prompt,
@@ -367,28 +365,11 @@ class Translation:
                 logits_processors=self.logits_processors,
                 max_tokens=max_tokens
             )
-            
-            # デバッグ: 生成された生の出力を表示
-            if self.debug and self.is_gpt_oss:
-                print(f"[GPT-OSS] Raw output: {response[:200]}...")
-            
-            output_ids = self.llm_tokenizer.encode(
-                response,
-                add_special_tokens=True,
-                return_tensors='pt'
-            )
-            response = self.llm_tokenizer.decode(
-                output_ids[0],
-                skip_special_tokens=True
-            )
-            
-            # GPT-OSSの場合はチャンネルタグをパース
-            if self.is_gpt_oss:
-                response = self._parse_gpt_oss_output(response)
+            response = output.strip()
             
         elif self.model_type == 'gguf':
             # Linux/Windows: GGUF形式で推論
-            max_tokens = self.generation_params.get('max_new_tokens', 256)
+            max_tokens = self.generation_params.get('max_new_tokens', 4096)
             temperature = self.generation_params.get('temperature', 0.8)
             top_p = self.generation_params.get('top_p', 1.0)
             top_k = self.generation_params.get('top_k', 0)
@@ -406,14 +387,6 @@ class Translation:
                 print(f"===> GGUF Output:\n{output}\n=== End of GGUF Output")
 
             response = output['choices'][0]['message']['content'].strip()
-            
-            # デバッグ: 生成された生の出力を表示
-            if self.debug and self.is_gpt_oss:
-                print(f"[GPT-OSS] Raw output: {response[:200]}...")
-            
-            # GPT-OSSの場合はチャンネルタグをパース
-            if self.is_gpt_oss:
-                response = self._parse_gpt_oss_output(response)
             
         else:
             # Linux/Windows: transformersで推論
@@ -438,14 +411,14 @@ class Translation:
                 output_ids[0][input_ids.size(1):],
                 skip_special_tokens=True
             )
-            
-            # デバッグ: 生成された生の出力を表示
-            if self.debug and self.is_gpt_oss:
-                print(f"[GPT-OSS] Raw output: {response[:200]}...")
-            
-            # GPT-OSSの場合はチャンネルタグをパース
-            if self.is_gpt_oss:
-                response = self._parse_gpt_oss_output(response)
+        
+        # デバッグ: 生成された生の出力を表示
+        if self.debug and self.is_gpt_oss:
+            print(f"[GPT-OSS] Raw output: {response[:200]}...")
+        
+        # GPT-OSSの場合はチャンネルタグをパース
+        if self.is_gpt_oss:
+            response = self._parse_gpt_oss_output(response)
 
         return response.strip()
 
