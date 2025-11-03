@@ -22,6 +22,8 @@ mlx-whisper>=0.4.0; sys_platform == "darwin"
 
 # --- Windows/Linux （Transformers or llama.cpp 経路）---
 torch>=2.1.0; sys_platform != "darwin"
+triton>=3.4.0; sys_platform == "linux"
+triton-windows>=3.4.0; sys_platform == "win32"
 openai-whisper; sys_platform != "darwin"
 llama-cpp-python>=0.3.2; sys_platform != "darwin"
 
