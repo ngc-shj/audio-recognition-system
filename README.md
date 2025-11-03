@@ -23,8 +23,12 @@ An audio recognition and real-time translation system built to efficiently trans
     - [Command-Line Options](#command-line-options)
   - [File Structure](#file-structure)
   - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debug Mode](#debug-mode)
   - [Contributions](#contributions)
+    - [Development Setup](#development-setup)
   - [License](#license)
+  - [Additional Resources](#additional-resources)
 
 ## Overview
 
@@ -89,10 +93,19 @@ models:
       model_size: "large-v3-turbo"
   
   translation:
-    darwin:
-      model_path: "mlx-community/llm-jp-3-3.7b-instruct"
-    default:
-      model_path: "llm-jp/llm-jp-3-3.7b-instruct"
+    darwin:  # macOS
+      model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4"
+    default:  # Linux/Windows
+      model_path: "openai/gpt-oss-20b"
+
+    # GGUF (llama-cpp-python)
+    gguf:
+      enabled: false
+      model_path: "unsloth/gpt-oss-20b-GGUF"
+      model_file: "gpt-oss-20b-Q4_K_M.gguf"
+      n_ctx: 4096
+      n_gpu_layers: -1
+      n_threads: 8
 
 # Audio Settings
 audio:
@@ -118,9 +131,9 @@ translation:
   
   generation:
     darwin:
-      max_tokens: 256
+      max_tokens: 4096
       temperature: 0.8
-      top_p: 0.95
+      top_p: 1.0
       repetition_penalty: 1.1
       repetition_context_size: 20
 
@@ -339,16 +352,3 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - [Whisper Documentation](https://github.com/openai/whisper)
 - [MLX Framework (macOS)](https://github.com/ml-explore/mlx)
 - [Blackhole Audio Driver](https://github.com/ExistentialAudio/BlackHole)
-
-## Changelog
-
-### v2.0.0 (Current)
-- ✨ Added YAML-based configuration system
-- ✨ Added profile support (development, production, testing)
-- ✨ Platform-specific optimizations (MLX for macOS)
-- 🐛 Fixed MLX translation parameter handling
-- 📝 Comprehensive configuration documentation
-- 🎨 Cleaner architecture with data classes
-
-### v1.0.0
-- Initial release with basic transcription and translation
