@@ -155,10 +155,11 @@ class ResourceConfig:
 class TTSConfig:
     """TTS (Text-to-Speech) 設定データクラス"""
     enabled: bool = False
-    engine: str = "pyttsx3"
-    rate: int = 150  # words per minute
-    volume: float = 0.9  # 0.0-1.0
-    voice: Optional[str] = None  # voice ID
+    engine: str = "edge-tts"
+    voice: str = "ja-JP-NanamiNeural"  # edge-tts voice ID
+    rate: str = "+0%"  # edge-tts rate (-50% to +100%)
+    volume: str = "+0%"  # edge-tts volume (-50% to +100%)
+    pitch: str = "+0Hz"  # edge-tts pitch (-50Hz to +50Hz)
 
 
 class ConfigManager:
@@ -526,10 +527,11 @@ class ConfigManager:
         if not hasattr(self, '_tts') or self._tts is None:
             self._tts = TTSConfig(
                 enabled=self.get('tts', 'enabled', default=False),
-                engine=self.get('tts', 'engine', default='pyttsx3'),
-                rate=self.get('tts', 'rate', default=150),
-                volume=self.get('tts', 'volume', default=0.9),
-                voice=self.get('tts', 'voice', default=None),
+                engine=self.get('tts', 'engine', default='edge-tts'),
+                voice=self.get('tts', 'voice', default='ja-JP-NanamiNeural'),
+                rate=self.get('tts', 'rate', default='+0%'),
+                volume=self.get('tts', 'volume', default='+0%'),
+                pitch=self.get('tts', 'pitch', default='+0Hz'),
             )
 
         return self._tts

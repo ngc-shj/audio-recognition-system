@@ -135,10 +135,11 @@ output:
 # TTS (Text-to-Speech) 設定
 tts:
   enabled: false  # TTS機能を有効化
-  engine: "pyttsx3"  # TTS engine: pyttsx3
-  rate: 150  # 読み上げ速度 (words per minute)
-  volume: 0.9  # 音量 (0.0-1.0)
-  voice: null  # 音声ID (nullの場合はデフォルト)
+  engine: "edge-tts"  # TTS engine: edge-tts (Microsoft Edge Neural TTS)
+  voice: "ja-JP-NanamiNeural"  # 音声ID (日本語音声: Nanami, Mayu, Aoi, Shiori, Keita, Daichi, Naoki)
+  rate: "+0%"  # 読み上げ速度 (-50% to +100%)
+  volume: "+0%"  # 音量 (-50% to +100%)
+  pitch: "+0Hz"  # ピッチ (-50Hz to +50Hz)
 
 # システムリソース設定
 resources:

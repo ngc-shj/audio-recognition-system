@@ -16,7 +16,7 @@ protobuf>=4.25.0
 pyaudio
 
 # --- Text-to-Speech (Optional) ---
-pyttsx3>=2.90
+edge-tts>=7.0.0
 
 # --- API Server Mode (Optional: for LM Studio, Ollama, vLLM, etc.) ---
 openai>=1.0.0
