@@ -15,6 +15,9 @@ protobuf>=4.25.0
 # --- Audio I/O ---
 pyaudio
 
+# --- API Server Mode (Optional: for LM Studio, Ollama, vLLM, etc.) ---
+openai>=1.0.0
+
 # --- macOS (MLX 経路：GGUF 直読み & Whisper MLX) ---
 mlx>=0.29.0; sys_platform == "darwin"
 mlx-lm>=0.28.0; sys_platform == "darwin"
