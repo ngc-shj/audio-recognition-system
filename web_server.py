@@ -104,18 +104,48 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif message_type == "start":
                 # 音声認識開始
-                await websocket.send_json({
-                    "type": "status",
-                    "message": "Recognition started",
-                    "status": "running"
-                })
+                if not server_state.is_recognition_running:
+                    # 設定を取得
+                    settings = data.get("settings", {})
+                    source_lang = settings.get("source_lang") or server_state.config.get("source_lang")
+                    target_lang = settings.get("target_lang") or server_state.config.get("target_lang")
+                    mode = server_state.config.get("mode", "translation")
+
+                    # 認識システムを起動
+                    web_ui_url = "http://localhost:8000"
+                    recognition_thread = threading.Thread(
+                        target=run_recognition_system,
+                        args=("config.yaml", source_lang, target_lang, web_ui_url, mode),
+                        daemon=True
+                    )
+                    recognition_thread.start()
+                    server_state.is_recognition_running = True
+                    server_state.recognition_thread = recognition_thread
+
+                    await websocket.send_json({
+                        "type": "status",
+                        "message": "Recognition started",
+                        "status": "running"
+                    })
+                    # 全クライアントに通知
+                    await manager.broadcast({
+                        "type": "status",
+                        "message": "Recognition started",
+                        "status": "running"
+                    })
+                else:
+                    await websocket.send_json({
+                        "type": "status",
+                        "message": "Recognition already running",
+                        "status": "running"
+                    })
 
             elif message_type == "stop":
-                # 音声認識停止
+                # 音声認識停止（現在のアーキテクチャでは停止できない）
                 await websocket.send_json({
                     "type": "status",
-                    "message": "Recognition stopped",
-                    "status": "stopped"
+                    "message": "Stop is not supported yet. Please restart the server.",
+                    "status": "running" if server_state.is_recognition_running else "stopped"
                 })
 
             elif message_type == "settings":

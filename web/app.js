@@ -190,10 +190,16 @@ startBtn.addEventListener('click', () => {
         tts_enabled: ttsEnabled.checked
     };
 
+    console.log('Starting recognition with settings:', settings);
+
     ws.send(JSON.stringify({
         type: 'start',
         settings: settings
     }));
+
+    // UI状態を即座に更新
+    startBtn.disabled = true;
+    updateStatus('connecting', 'Starting recognition...');
 });
 
 // 停止ボタン
