@@ -22,6 +22,19 @@ import uvicorn
 
 app = FastAPI(title="Audio Recognition System Web UI")
 
+# グローバル設定とステート
+class ServerState:
+    def __init__(self):
+        self.config = {
+            "mode": "translation",
+            "source_lang": "en",
+            "target_lang": "ja",
+        }
+        self.recognition_thread = None
+        self.is_recognition_running = False
+
+server_state = ServerState()
+
 # WebSocket接続の管理
 class ConnectionManager:
     def __init__(self):
@@ -126,8 +139,14 @@ async def get_status():
     return {
         "status": "running",
         "connections": len(manager.active_connections),
-        "recognition_active": False
+        "recognition_active": server_state.is_recognition_running
     }
+
+
+@app.get("/api/config")
+async def get_config():
+    """現在の設定を取得"""
+    return server_state.config
 
 
 @app.post("/api/broadcast")
@@ -207,6 +226,13 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
     """
     web_ui_url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{port}"
 
+    # サーバー設定を保存
+    server_state.config["mode"] = mode
+    if source_lang:
+        server_state.config["source_lang"] = source_lang
+    if target_lang:
+        server_state.config["target_lang"] = target_lang
+
     # 音声認識システムを別スレッドで起動
     if start_recognition:
         mode_name = "音声認識＋翻訳" if mode == "translation" else "音声認識のみ"
@@ -217,6 +243,8 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
             daemon=True
         )
         recognition_thread.start()
+        server_state.is_recognition_running = True
+        server_state.recognition_thread = recognition_thread
         print(f"{mode_name}システムが起動しました\n")
 
     print(f"Starting Web UI server at http://{host}:{port}")

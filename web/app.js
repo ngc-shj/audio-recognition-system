@@ -3,6 +3,13 @@ let ws = null;
 let isConnected = false;
 let isRunning = false;
 
+// Server configuration
+let serverConfig = {
+    mode: 'translation',
+    source_lang: 'en',
+    target_lang: 'ja'
+};
+
 // DOM elements
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
@@ -222,7 +229,57 @@ clearBtn.addEventListener('click', () => {
     });
 });
 
-// ページロード時に接続
-window.addEventListener('load', () => {
+// サーバー設定を取得してUIに反映
+async function loadServerConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (response.ok) {
+            serverConfig = await response.json();
+            console.log('Server config loaded:', serverConfig);
+
+            // UIに反映
+            if (sourceLang && serverConfig.source_lang) {
+                sourceLang.value = serverConfig.source_lang;
+            }
+            if (targetLang && serverConfig.target_lang) {
+                targetLang.value = serverConfig.target_lang;
+            }
+
+            // transcriptモードの場合は翻訳パネルを非表示
+            if (serverConfig.mode === 'transcript') {
+                const translatedPanel = document.querySelector('.panel:has(#translatedOutput)');
+                if (translatedPanel) {
+                    translatedPanel.style.display = 'none';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load server config:', error);
+    }
+}
+
+// 認識ステータスを取得
+async function checkRecognitionStatus() {
+    try {
+        const response = await fetch('/api/status');
+        if (response.ok) {
+            const status = await response.json();
+            if (status.recognition_active) {
+                isRunning = true;
+                updateStatus('running', 'Recognition Running');
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                statsText.textContent = 'Recognition: Active';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check recognition status:', error);
+    }
+}
+
+// ページロード時に設定を読み込んでから接続
+window.addEventListener('load', async () => {
+    await loadServerConfig();
+    await checkRecognitionStatus();
     connectWebSocket();
 });
