@@ -3,12 +3,17 @@ Web UI Server for Audio Recognition System
 
 FastAPI-based web server with WebSocket support for real-time
 speech recognition and translation display.
+
+This server can also start the audio recognition system automatically.
 """
 
 import asyncio
 import json
+import sys
+import argparse
+import threading
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -137,11 +142,109 @@ async def broadcast_message(message: dict):
     return {"status": "ok"}
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8000):
-    """Web UIサーバーを起動"""
+def run_recognition_system(config_path: str = "config.yaml",
+                          source_lang: Optional[str] = None,
+                          target_lang: Optional[str] = None,
+                          web_ui_url: str = "http://localhost:8000",
+                          mode: str = "translation"):
+    """
+    音声認識システムを別スレッドで起動
+
+    Args:
+        config_path: 設定ファイルのパス
+        source_lang: 音源言語
+        target_lang: 翻訳先言語
+        web_ui_url: Web UIサーバーのURL
+        mode: 動作モード ('translation' or 'transcript')
+    """
+    try:
+        # モードに応じてメインスクリプトを選択
+        import importlib.util
+        if mode == "transcript":
+            script_path = "main_transcription_only.py"
+        else:
+            script_path = "main_with_translation.py"
+
+        spec = importlib.util.spec_from_file_location("main_module", script_path)
+        if spec and spec.loader:
+            main_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(main_module)
+
+            # コマンドライン引数を構築
+            sys.argv = [script_path, "--web-ui", "--web-ui-url", web_ui_url]
+            if config_path:
+                sys.argv.extend(["--config", config_path])
+            if source_lang:
+                sys.argv.extend(["--source-lang", source_lang])
+            if mode == "translation" and target_lang:
+                sys.argv.extend(["--target-lang", target_lang])
+
+            # メイン関数を実行
+            main_module.main()
+    except Exception as e:
+        print(f"Error starting recognition system: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def run_server(host: str = "0.0.0.0", port: int = 8000,
+               start_recognition: bool = False,
+               config_path: str = "config.yaml",
+               source_lang: Optional[str] = None,
+               target_lang: Optional[str] = None,
+               mode: str = "translation"):
+    """
+    Web UIサーバーを起動
+
+    Args:
+        host: ホストアドレス
+        port: ポート番号
+        start_recognition: 音声認識システムも起動するか
+        config_path: 設定ファイルのパス
+        source_lang: 音源言語
+        target_lang: 翻訳先言語
+        mode: 動作モード ('translation' or 'transcript')
+    """
+    web_ui_url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{port}"
+
+    # 音声認識システムを別スレッドで起動
+    if start_recognition:
+        mode_name = "音声認識＋翻訳" if mode == "translation" else "音声認識のみ"
+        print(f"\n{mode_name}システムを起動しています...")
+        recognition_thread = threading.Thread(
+            target=run_recognition_system,
+            args=(config_path, source_lang, target_lang, web_ui_url, mode),
+            daemon=True
+        )
+        recognition_thread.start()
+        print(f"{mode_name}システムが起動しました\n")
+
     print(f"Starting Web UI server at http://{host}:{port}")
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
-    run_server()
+    parser = argparse.ArgumentParser(description="Audio Recognition System Web UI Server")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host address")
+    parser.add_argument("--port", type=int, default=8000, help="Port number")
+    parser.add_argument("--start-recognition", action="store_true",
+                       help="Start audio recognition system automatically")
+    parser.add_argument("--mode", type=str, default="translation",
+                       choices=["translation", "transcript"],
+                       help="Recognition mode: 'translation' (with translation) or 'transcript' (recognition only)")
+    parser.add_argument("--config", type=str, default="config.yaml",
+                       help="Configuration file path")
+    parser.add_argument("--source-lang", type=str, help="Source language (e.g., 'en', 'ja')")
+    parser.add_argument("--target-lang", type=str, help="Target language (e.g., 'ja', 'en')")
+
+    args = parser.parse_args()
+
+    run_server(
+        host=args.host,
+        port=args.port,
+        start_recognition=args.start_recognition,
+        config_path=args.config,
+        source_lang=args.source_lang,
+        target_lang=args.target_lang,
+        mode=args.mode
+    )
