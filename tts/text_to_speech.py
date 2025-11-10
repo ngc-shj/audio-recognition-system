@@ -35,14 +35,40 @@ class TextToSpeech:
     翻訳されたテキストをリアルタイムで音声に変換して再生します。
     """
 
-    def __init__(self, tts_config, debug=False):
+    # 言語コードと音声のマッピング
+    LANGUAGE_VOICES = {
+        'ja': 'ja-JP-NanamiNeural',
+        'en': 'en-US-AriaNeural',
+        'es': 'es-ES-ElviraNeural',
+        'fr': 'fr-FR-DeniseNeural',
+        'de': 'de-DE-KatjaNeural',
+        'zh': 'zh-CN-XiaoxiaoNeural',
+        'ko': 'ko-KR-SunHiNeural',
+        'it': 'it-IT-ElsaNeural',
+        'pt': 'pt-BR-FranciscaNeural',
+        'ru': 'ru-RU-SvetlanaNeural',
+    }
+
+    def __init__(self, tts_config, debug=False, target_language=None):
         """
         Args:
             tts_config: TTS設定（TTSConfig）
             debug: デバッグモード
+            target_language: ターゲット言語コード（例: 'ja', 'en'）
         """
         self.config = tts_config
         self.debug = debug
+        self.target_language = target_language
+
+        # 言語に応じた音声を選択（設定で指定されている場合はそちらを優先）
+        if target_language and target_language in self.LANGUAGE_VOICES:
+            self.voice = self.LANGUAGE_VOICES[target_language]
+            if self.debug:
+                print(f"Auto-selected voice for language '{target_language}': {self.voice}")
+        else:
+            self.voice = self.config.voice
+            if self.debug and target_language:
+                print(f"Language '{target_language}' not found in voice map, using config voice: {self.voice}")
 
         self.speech_queue = Queue()
         self.speech_thread = None
@@ -71,7 +97,8 @@ class TextToSpeech:
         # 設定の表示
         if self.debug:
             print(f"Initializing TTS engine: {self.config.engine}")
-            print(f"  Voice: {self.config.voice}")
+            print(f"  Voice: {self.voice}")
+            print(f"  Target Language: {self.target_language or 'Not specified'}")
             print(f"  Rate: {self.config.rate}")
             print(f"  Volume: {self.config.volume}")
             print(f"  Pitch: {self.config.pitch}")
@@ -155,7 +182,7 @@ class TextToSpeech:
             # edge-ttsで音声合成
             communicate = edge_tts.Communicate(
                 text,
-                self.config.voice,
+                self.voice,  # 言語に応じて選択された音声を使用
                 rate=self.config.rate,
                 volume=self.config.volume,
                 pitch=self.config.pitch

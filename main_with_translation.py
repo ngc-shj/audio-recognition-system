@@ -282,7 +282,11 @@ def main():
         tts = None
         if TTS_AVAILABLE and config.tts.enabled:
             try:
-                tts = TextToSpeech(config.tts, debug=debug_mode)
+                tts = TextToSpeech(
+                    config.tts,
+                    debug=debug_mode,
+                    target_language=config.language.target
+                )
             except Exception as e:
                 print(f"Warning: TTS initialization failed: {e}")
                 tts = None
