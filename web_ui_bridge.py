@@ -29,13 +29,14 @@ class WebUIBridge:
         self.enabled = enabled
         self.broadcast_url = f"{server_url}/api/broadcast"
 
-    def send_recognized_text(self, text: str, language: str = "en"):
+    def send_recognized_text(self, text: str, language: str = "en", pair_id: Optional[str] = None):
         """
         認識されたテキストを送信
 
         Args:
             text: 認識されたテキスト
             language: 言語コード
+            pair_id: ペアID（翻訳と紐付けるため）
         """
         if not self.enabled:
             return
@@ -44,17 +45,19 @@ class WebUIBridge:
             "type": "recognized",
             "text": text,
             "language": language,
+            "pair_id": pair_id or datetime.now().isoformat(),
             "timestamp": datetime.now().isoformat()
         }
         self._broadcast(message)
 
-    def send_translated_text(self, text: str, source_text: Optional[str] = None):
+    def send_translated_text(self, text: str, source_text: Optional[str] = None, pair_id: Optional[str] = None):
         """
         翻訳されたテキストを送信
 
         Args:
             text: 翻訳されたテキスト
             source_text: 元のテキスト（オプション）
+            pair_id: ペアID（認識テキストと紐付けるため）
         """
         if not self.enabled:
             return
@@ -63,6 +66,7 @@ class WebUIBridge:
             "type": "translated",
             "text": text,
             "source_text": source_text,
+            "pair_id": pair_id or datetime.now().isoformat(),
             "timestamp": datetime.now().isoformat()
         }
         self._broadcast(message)

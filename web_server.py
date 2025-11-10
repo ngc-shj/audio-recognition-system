@@ -117,9 +117,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     server_state.config["source_lang"] = source_lang
                     server_state.config["target_lang"] = target_lang
 
-                    # 停止イベントをクリア
-                    recognition_stop_event.clear()
-
                     # 認識システムを起動
                     web_ui_url = "http://localhost:8000"
                     recognition_thread = threading.Thread(

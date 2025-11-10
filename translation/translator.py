@@ -337,8 +337,12 @@ class Translation:
                 # キューから新しいテキストを追加
                 while len(texts_to_translate) < self.batch_size:
                     try:
-                        text = self.translation_queue.get_nowait()
-                        texts_to_translate.append(text)
+                        item = self.translation_queue.get_nowait()
+                        # 辞書形式（{text, pair_id}）または文字列を受け入れる
+                        if isinstance(item, dict):
+                            texts_to_translate.append(item)
+                        else:
+                            texts_to_translate.append({'text': item, 'pair_id': None})
                     except queue.Empty:
                         if self.debug:
                             print("翻訳キューが空です")
@@ -355,10 +359,13 @@ class Translation:
                 translated_texts = []
                 bilingual_texts = []
                 processed_items = [
-                    (text, self.preprocess_text(text)) for text in texts_to_translate
+                    (item, self.preprocess_text(item['text'])) for item in texts_to_translate
                 ]
 
-                for original_text, processed_text in processed_items:
+                for item, processed_text in processed_items:
+                    original_text = item['text']
+                    pair_id = item.get('pair_id')
+
                     translated_text = self.translate_text(processed_text)
 
                     if self.is_valid_translation(translated_text):
@@ -379,13 +386,13 @@ class Translation:
                                 if self.debug:
                                     print(f"TTS error: {e}")
 
-                        # Web UIに送信
+                        # Web UIに送信（pair_idも送信）
                         if self.web_ui:
-                            self.web_ui.send_translated_text(translated_text, processed_text)
+                            self.web_ui.send_translated_text(translated_text, processed_text, pair_id)
                     else:
                         if self.debug:
                             print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
-                        self.handle_translation_error(original_text)
+                        self.handle_translation_error(item)
                 
                 # ファイルに記録（バッチ書き込みでI/O効率化）
                 if translated_texts or bilingual_texts:

@@ -97,13 +97,19 @@ class SpeechRecognition:
                     self.print_with_strictly_controlled_linebreaks(text)
                     last_text = text
                     last_text_time = current_time
+
+                    # ペアIDを生成（翻訳と紐付けるため）
+                    import uuid
+                    pair_id = str(uuid.uuid4())
+
                     if self.translation_queue:
-                        self.translation_queue.put(text)
+                        # ペアIDと一緒に送信
+                        self.translation_queue.put({'text': text, 'pair_id': pair_id})
                     # 認識結果をバッファに追加（I/O効率化）
                     self._add_to_log_buffer(text)
-                    # Web UIに送信
+                    # Web UIに送信（ペアID付き）
                     if self.web_ui:
-                        self.web_ui.send_recognized_text(text, self.lang_config.source)
+                        self.web_ui.send_recognized_text(text, self.lang_config.source, pair_id)
 
                 elif self.debug:
                     print("処理後のテキストが空か、直前の文と同じため出力をスキップします")
