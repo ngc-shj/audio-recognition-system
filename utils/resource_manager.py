@@ -1,4 +1,6 @@
 import sys
+import time
+import threading
 import psutil
 
 class ResourceManager:
@@ -21,17 +23,27 @@ class ResourceManager:
             self.current_threads = min(self.max_threads, self.current_threads + 1)
         return self.current_threads
 
-    def monitor_resources(self, interval: int = 5):
-        while True:
+    def monitor_resources(self, stop_event: threading.Event = None, interval: int = 5):
+        """
+        Monitor system resources in a loop.
+
+        Args:
+            stop_event: threading.Event to signal when to stop monitoring
+            interval: monitoring interval in seconds
+        """
+        if stop_event is None:
+            stop_event = threading.Event()
+
+        while not stop_event.is_set():
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
-            
+
             print(f"CPU使用率: {cpu_percent:.1f}% | "
                   f"メモリ使用率: {memory_percent:.1f}% "
                   f"({memory.used / (1024**3):.1f}GB / {memory.total / (1024**3):.1f}GB)")
-            
-            time.sleep(interval)
+
+            stop_event.wait(timeout=interval)
 
     def get_system_info(self) -> dict:
         memory = psutil.virtual_memory()

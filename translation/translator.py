@@ -58,7 +58,7 @@ class Translation:
             trans_config = config_manager.translation
             model_config = config_manager.get_model_config('translation')
             output_config = config_manager.output
-            
+
             self.batch_size = trans_config.batch_size
             self.context_window_size = trans_config.context_window_size
             self.context_separator = trans_config.context_separator
@@ -68,7 +68,10 @@ class Translation:
             self.generation_params = trans_config.generation_params
             self.model_path = model_config.model_path
             self.output_dir = output_config.directory
-            
+
+            # セキュリティ設定: trust_remote_code の取得（デフォルト: False）
+            self.trust_remote_code = getattr(model_config, 'trust_remote_code', False)
+
             # GGUF設定の取得
             gguf_config = model_config.gguf
             self.use_gguf = gguf_config.enabled
@@ -88,7 +91,10 @@ class Translation:
             self.generation_params = self._setup_default_generation_params()
             self.model_path = getattr(config_manager, 'llm_model', None)
             self.output_dir = getattr(config_manager, 'output_dir', 'logs')
-            
+
+            # セキュリティ設定: trust_remote_code（デフォルト: False）
+            self.trust_remote_code = getattr(config_manager, 'trust_remote_code', False)
+
             # デフォルトではGGUFを無効化
             self.use_gguf = False
 
@@ -245,14 +251,14 @@ class Translation:
                 
                 self.llm_tokenizer = AutoTokenizer.from_pretrained(
                     self.model_path,
-                    trust_remote_code=True
+                    trust_remote_code=self.trust_remote_code
                 )
                 self.llm_model = AutoModelForCausalLM.from_pretrained(
                     self.model_path,
                     torch_dtype="auto",
                     device_map="auto",
                     low_cpu_mem_usage=True,
-                    trust_remote_code=True,
+                    trust_remote_code=self.trust_remote_code,
                 )
                 self.model_type = 'transformers'
                 
@@ -289,17 +295,22 @@ class Translation:
                         break
                 
                 if not texts_to_translate:
-                    time.sleep(0.1)
+                    # シャットダウン中は待機しない
+                    if not is_running.is_set():
+                        break
+                    time.sleep(0.2)
                     continue
 
-                # バッチ翻訳の実行
+                # バッチ翻訳の実行（複数テキストをまとめて処理）
                 translated_texts = []
                 bilingual_texts = []
-                
-                for text in texts_to_translate:
-                    processed_text = self.preprocess_text(text)
+                processed_items = [
+                    (text, self.preprocess_text(text)) for text in texts_to_translate
+                ]
+
+                for original_text, processed_text in processed_items:
                     translated_text = self.translate_text(processed_text)
-                
+
                     if self.is_valid_translation(translated_text):
                         print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
@@ -311,21 +322,28 @@ class Translation:
                         self.consecutive_errors = 0
                     else:
                         if self.debug:
-                            print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {text}\n")
-                        self.handle_translation_error(text)
+                            print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
+                        self.handle_translation_error(original_text)
                 
-                # ファイルに記録
-                if translated_texts:
-                    with open(self.log_file_path, "a", encoding="utf-8") as log_file:
-                        log_file.write("\n".join(translated_texts) + "\n")
+                # ファイルに記録（バッチ書き込みでI/O効率化）
+                if translated_texts or bilingual_texts:
+                    try:
+                        # 両方のログをまとめて開く（I/Oコストを削減）
+                        files = {}
+                        if translated_texts:
+                            files['translated'] = (self.log_file_path, "\n".join(translated_texts) + "\n")
+                        if bilingual_texts:
+                            files['bilingual'] = (self.bilingual_log_file_path, "\n".join(bilingual_texts) + "\n")
 
-                if bilingual_texts:
-                    with open(self.bilingual_log_file_path, "a", encoding="utf-8") as bilingual_log_file:
-                        bilingual_log_file.write("\n".join(bilingual_texts) + "\n")
+                        for log_type, (file_path, content) in files.items():
+                            with open(file_path, "a", encoding="utf-8") as f:
+                                f.write(content)
+                    except IOError as e:
+                        print(f"ログ書き込みエラー: {e}", flush=True)
 
             except Exception as e:
                 print(f"\nエラー (翻訳スレッド): {e}", flush=True)
-                time.sleep(1)
+                time.sleep(0.5)
             
             self.check_model_reload()
         

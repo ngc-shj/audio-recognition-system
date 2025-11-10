@@ -16,10 +16,16 @@ models:
   # 翻訳モデル (LLM)
   translation:
     darwin:  # macOS
-      model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4" # MLX対応モデル
+      #model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4" # MLX対応モデル
+      model_path: "mlx-community/llm-jp-3-3.7b-instruct"
     default:  # Linux/Windows
       model_path: "openai/gpt-oss-20b" # Hugging Faceリポジトリまたはローカルパス
-    
+
+    # セキュリティ設定：trust_remote_code の有効化
+    # デフォルトは false (安全性を優先)
+    # カスタムコードを含むモデルを使用する場合は true に設定してください
+    trust_remote_code: false
+
     # GGUF形式のモデル対応 (Linux/Windows)
     gguf:
       enabled: false  # trueに設定するとGGUFモデルを使用

@@ -62,10 +62,10 @@ class AudioCapture:
         print(f"音声キャプチャスレッド開始 (デバイスインデックス: {self.input_device_index})")
         
         stream.start_stream()
-        
+
         while is_running.is_set():
             time.sleep(0.1)
-        
+
         stream.stop_stream()
         stream.close()
         audio.terminate()
