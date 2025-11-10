@@ -48,7 +48,7 @@ class Translation:
     ConfigManagerから設定を取得し、LLMで翻訳を実行します。
     """
     
-    def __init__(self, translation_queue, config_manager, lang_config, debug=False, tts=None):
+    def __init__(self, translation_queue, config_manager, lang_config, debug=False, tts=None, web_ui=None):
         """
         Args:
             translation_queue: 翻訳待ちテキストのキュー
@@ -56,11 +56,13 @@ class Translation:
             lang_config: LanguageConfig データクラス
             debug: デバッグモード
             tts: TextToSpeech インスタンス（オプショナル）
+            web_ui: WebUIBridge インスタンス（オプショナル）
         """
         self.translation_queue = translation_queue
         self.lang_config = lang_config
         self.debug = debug
         self.tts = tts  # TTS機能
+        self.web_ui = web_ui  # Web UI Bridge
 
         # ConfigManagerから設定を取得
         if hasattr(config_manager, 'translation'):
@@ -376,6 +378,10 @@ class Translation:
                             except Exception as e:
                                 if self.debug:
                                     print(f"TTS error: {e}")
+
+                        # Web UIに送信
+                        if self.web_ui:
+                            self.web_ui.send_translated_text(translated_text, processed_text)
                     else:
                         if self.debug:
                             print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
