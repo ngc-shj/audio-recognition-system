@@ -194,12 +194,19 @@ function updatePairDisplay(pair) {
     // 既存のエントリを探す
     let entryElement = document.getElementById(`pair-${pair.id}`);
 
+    // モードを確認
+    const mode = serverConfig.mode || 'translation';
+    const isTranslationMode = mode === 'translation';
+
     if (!entryElement) {
         // 新しいエントリを作成
         entryElement = document.createElement('div');
         entryElement.id = `pair-${pair.id}`;
-        entryElement.className = 'text-entry';
+        entryElement.className = isTranslationMode ? 'text-entry' : 'text-entry transcript-only';
         liveOutput.insertBefore(entryElement, liveOutput.firstChild);
+    } else {
+        // モード変更に対応してクラスを更新
+        entryElement.className = isTranslationMode ? 'text-entry' : 'text-entry transcript-only';
     }
 
     // タイムスタンプを表示
@@ -211,37 +218,30 @@ function updatePairDisplay(pair) {
         second: '2-digit'
     });
 
-    // モードを確認
-    const mode = serverConfig.mode || 'translation';
-    const isTranslationMode = mode === 'translation';
+    // 再生ボタン（翻訳モードでは翻訳テキスト用、それ以外は認識テキスト用）
+    const playButtonText = isTranslationMode && pair.translated ? pair.translated : pair.recognized;
+    const playButtonLang = isTranslationMode && pair.translated ? serverConfig.target_lang || 'ja' : pair.language || 'en';
 
-    // コンテンツを構築
-    let html = `<div class="timestamp">${timeStr}${pair.language ? ` [${pair.language}]` : ''}</div><div class="text-pair">`;
+    // コンテンツを構築（シンプルな縦並びレイアウト）
+    let html = `
+        <button class="play-btn" onclick="playText('${escapeHtml(playButtonText || '')}', '${playButtonLang}')">▶</button>
+        <div class="text-pair">
+            <div class="timestamp">${timeStr}${pair.language ? ` [${pair.language}]` : ''}</div>
+    `;
 
-    // 認識テキスト
-    if (pair.recognized) {
-        html += `
-            <div class="text-item">
-                <button class="play-btn" onclick="playText('${escapeHtml(pair.recognized)}', '${pair.language || 'en'}')">▶</button>
-                <div class="text-content original-text">
-                    <div class="text-label">${isTranslationMode ? 'Original' : 'Recognized'}</div>
-                    <div class="text-value">${escapeHtml(pair.recognized)}</div>
-                </div>
-            </div>
-        `;
-    }
-
-    // 翻訳テキスト（翻訳モードのみ）
-    if (pair.translated && isTranslationMode) {
-        html += `
-            <div class="text-item">
-                <button class="play-btn" onclick="playText('${escapeHtml(pair.translated)}', '${serverConfig.target_lang || 'ja'}')">▶</button>
-                <div class="text-content translated-text">
-                    <div class="text-label">Translation</div>
-                    <div class="text-value">${escapeHtml(pair.translated)}</div>
-                </div>
-            </div>
-        `;
+    // 翻訳モード：原語（小さく薄く）→ 翻訳語（大きくメイン）
+    if (isTranslationMode) {
+        if (pair.recognized) {
+            html += `<div class="original-text">${escapeHtml(pair.recognized)}</div>`;
+        }
+        if (pair.translated) {
+            html += `<div class="translated-text">${escapeHtml(pair.translated)}</div>`;
+        }
+    } else {
+        // Transcriptモード：認識テキストのみ（大きく）
+        if (pair.recognized) {
+            html += `<div class="original-text">${escapeHtml(pair.recognized)}</div>`;
+        }
     }
 
     html += '</div>';
