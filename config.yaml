@@ -140,6 +140,7 @@ tts:
   rate: "+0%"  # 読み上げ速度 (-50% to +100%)
   volume: "+0%"  # 音量 (-50% to +100%)
   pitch: "+0Hz"  # ピッチ (-50Hz to +50Hz)
+  output_device: "BlackHole 2ch"  # 出力デバイス名 (nullの場合はデフォルト、ループバック防止のため推奨)
 
 # システムリソース設定
 resources:

@@ -160,6 +160,7 @@ class TTSConfig:
     rate: str = "+0%"  # edge-tts rate (-50% to +100%)
     volume: str = "+0%"  # edge-tts volume (-50% to +100%)
     pitch: str = "+0Hz"  # edge-tts pitch (-50Hz to +50Hz)
+    output_device: Optional[str] = None  # Output device name
 
 
 class ConfigManager:
@@ -532,6 +533,7 @@ class ConfigManager:
                 rate=self.get('tts', 'rate', default='+0%'),
                 volume=self.get('tts', 'volume', default='+0%'),
                 pitch=self.get('tts', 'pitch', default='+0Hz'),
+                output_device=self.get('tts', 'output_device', default=None),
             )
 
         return self._tts

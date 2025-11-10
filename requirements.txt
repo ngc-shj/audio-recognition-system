@@ -17,6 +17,7 @@ pyaudio
 
 # --- Text-to-Speech (Optional) ---
 edge-tts>=7.0.0
+# Note: ffmpeg is required for MP3 to WAV conversion (install via: brew install ffmpeg)
 
 # --- API Server Mode (Optional: for LM Studio, Ollama, vLLM, etc.) ---
 openai>=1.0.0
