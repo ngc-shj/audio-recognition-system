@@ -26,6 +26,16 @@ models:
     # カスタムコードを含むモデルを使用する場合は true に設定してください
     trust_remote_code: false
 
+    # API Server設定 (LM Studio, Ollama, vLLM等のOpenAI互換API)
+    # api.enabledがtrueの場合、ローカルモデルロードではなくAPIサーバーを使用
+    api:
+      enabled: false  # trueに設定するとAPIサーバーを使用
+      base_url: "http://localhost:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
+      api_key: ""  # API Key (不要な場合は空文字列)
+      model: "local-model"  # 使用するモデル名 (サーバー側で設定したモデル名)
+      timeout: 60  # タイムアウト時間（秒）
+      max_retries: 3  # リトライ回数
+
     # GGUF形式のモデル対応 (Linux/Windows)
     gguf:
       enabled: false  # trueに設定するとGGUFモデルを使用

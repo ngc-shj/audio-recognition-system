@@ -98,6 +98,16 @@ models:
     default:  # Linux/Windows
       model_path: "openai/gpt-oss-20b"
 
+    # API Server (LM Studio, Ollama, vLLM, etc.)
+    # Use OpenAI-compatible API instead of loading models locally
+    api:
+      enabled: false
+      base_url: "http://localhost:1234/v1"  # LM Studio default
+      api_key: ""  # Leave empty if not required
+      model: "local-model"  # Model name configured in your API server
+      timeout: 60
+      max_retries: 3
+
     # GGUF (llama-cpp-python)
     gguf:
       enabled: false
@@ -145,6 +155,47 @@ output:
     translated_text: true
     bilingual_log: true
 ```
+
+### Translation Modes
+
+The system supports three translation modes:
+
+1. **Local Model Loading** (default): Loads models directly into memory using transformers, MLX, or GGUF
+2. **API Server Mode**: Uses OpenAI-compatible API servers (LM Studio, Ollama, vLLM, etc.)
+3. **GGUF Mode**: Uses llama-cpp-python for GGUF format models
+
+#### Using API Server Mode (Recommended for LM Studio, Ollama, etc.)
+
+To use an external API server instead of loading models locally:
+
+1. **Start your API server** (e.g., LM Studio):
+   - Launch LM Studio
+   - Load your preferred translation model
+   - Start the local server (default: `http://localhost:1234`)
+
+2. **Enable API mode in config.yaml**:
+   ```yaml
+   models:
+     translation:
+       api:
+         enabled: true
+         base_url: "http://localhost:1234/v1"  # Your API server URL
+         api_key: ""  # Leave empty if not required
+         model: "local-model"  # Model name from your server
+         timeout: 60
+         max_retries: 3
+   ```
+
+3. **Install the OpenAI client library**:
+   ```bash
+   pip install openai
+   ```
+
+**Benefits of API Mode:**
+- No need to load models into memory (saves RAM/VRAM)
+- Easy switching between different models
+- Can use any OpenAI-compatible API server
+- Supports LM Studio, Ollama, vLLM, Text Generation WebUI, and more
 
 ### Profiles
 

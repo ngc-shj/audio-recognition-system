@@ -23,7 +23,7 @@ if sys.platform == 'darwin':
         raise
 else:
     from transformers import AutoModelForCausalLM, AutoTokenizer, logging
-    
+
 # GGUF形式のモデルをサポート
 try:
     from llama_cpp import Llama
@@ -31,6 +31,14 @@ try:
 except ImportError:
     LLAMA_CPP_AVAILABLE = False
     print("INFO: llama-cpp-python not available. GGUF models will not be supported.")
+
+# OpenAI互換APIクライアントのサポート
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    print("INFO: openai package not available. API server mode will not be supported.")
 
 
 class Translation:
@@ -72,6 +80,15 @@ class Translation:
             # セキュリティ設定: trust_remote_code の取得（デフォルト: False）
             self.trust_remote_code = getattr(model_config, 'trust_remote_code', False)
 
+            # API設定の取得
+            api_config = model_config.api
+            self.use_api = api_config.enabled
+            self.api_base_url = api_config.base_url
+            self.api_key = api_config.api_key
+            self.api_model = api_config.model
+            self.api_timeout = api_config.timeout
+            self.api_max_retries = api_config.max_retries
+
             # GGUF設定の取得
             gguf_config = model_config.gguf
             self.use_gguf = gguf_config.enabled
@@ -95,7 +112,8 @@ class Translation:
             # セキュリティ設定: trust_remote_code（デフォルト: False）
             self.trust_remote_code = getattr(config_manager, 'trust_remote_code', False)
 
-            # デフォルトではGGUFを無効化
+            # デフォルトではAPI・GGUFを無効化
+            self.use_api = False
             self.use_gguf = False
 
         # 状態管理
@@ -106,10 +124,11 @@ class Translation:
         # コンテキスト管理
         self.context_window = deque(maxlen=self.context_window_size)
         
-        # モデル
+        # モデル / APIクライアント
         self.llm_model = None
         self.llm_tokenizer = None
-        self.model_type = None  # 'transformers', 'mlx', 'gguf'のいずれか
+        self.api_client = None  # OpenAI APIクライアント
+        self.model_type = None  # 'transformers', 'mlx', 'gguf', 'api'のいずれか
         self.is_gpt_oss = False  # GPT-OSSモデルかどうか
         
         # プロンプトテンプレート
@@ -189,12 +208,39 @@ class Translation:
         print(f"対訳ログ: {self.bilingual_log_file_path}")
 
     def load_model(self):
-        """翻訳モデルのロード"""
+        """翻訳モデル/APIクライアントのロード"""
         try:
             # 既存モデルのクリーンアップ
             del self.llm_model
             del self.llm_tokenizer
-            
+            del self.api_client
+
+            # APIサーバーを使用する場合
+            if self.use_api:
+                if not OPENAI_AVAILABLE:
+                    raise ImportError(
+                        "openai package is required for API mode. "
+                        "Install it with: pip install openai"
+                    )
+
+                print(f"APIサーバーに接続中: {self.api_base_url}")
+                print(f"使用モデル: {self.api_model}")
+
+                # OpenAI互換APIクライアントの初期化
+                self.api_client = OpenAI(
+                    base_url=self.api_base_url,
+                    api_key=self.api_key or "dummy-key",  # LM Studioなどではapi_keyが不要
+                    timeout=self.api_timeout,
+                    max_retries=self.api_max_retries
+                )
+                self.llm_model = None
+                self.llm_tokenizer = None
+                self.model_type = 'api'
+                self.is_gpt_oss = False  # APIモードではGPT-OSSパース不要
+
+                print("APIクライアントの初期化完了")
+                return
+
             # GGUF形式のモデルを使用するかどうかを判定
             if self.use_gguf and LLAMA_CPP_AVAILABLE:
                 print(f"翻訳モデルをロード中 (GGUF): {self.gguf_model_path}/{self.gguf_model_file}")
@@ -366,7 +412,31 @@ class Translation:
         messages = [{"role": "user", "content": prompt}]
 
         # 翻訳の実行
-        if self.model_type == 'mlx':
+        if self.model_type == 'api':
+            # API経由で推論
+            max_tokens = self.generation_params.get('max_new_tokens', 4096)
+            temperature = self.generation_params.get('temperature', 0.8)
+            top_p = self.generation_params.get('top_p', 1.0)
+
+            try:
+                completion = self.api_client.chat.completions.create(
+                    model=self.api_model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                )
+                response = completion.choices[0].message.content.strip()
+
+                if self.debug:
+                    print(f"[API] Response: {response[:200]}...")
+
+            except Exception as e:
+                print(f"API呼び出しエラー: {e}")
+                # エラー時は空の応答を返す
+                response = ""
+
+        elif self.model_type == 'mlx':
             # macOS: MLXで推論
             # チャットテンプレートの適用
             if hasattr(self.llm_tokenizer, "apply_chat_template") and self.llm_tokenizer.chat_template is not None:
@@ -460,6 +530,10 @@ class Translation:
 
     def check_model_reload(self):
         """定期的なモデル再ロードのチェック"""
+        # APIモードでは再ロード不要
+        if self.model_type == 'api':
+            return
+
         current_time = time.time()
         if current_time - self.last_reload_time > self.reload_interval:
             if self.debug:

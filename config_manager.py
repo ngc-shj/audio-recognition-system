@@ -44,11 +44,23 @@ class GGUFConfig:
 
 
 @dataclass
+class APIConfig:
+    """APIサーバー設定データクラス (LM Studio, Ollama, vLLM等のOpenAI互換API)"""
+    enabled: bool = False
+    base_url: str = "http://localhost:1234/v1"
+    api_key: str = ""
+    model: str = "local-model"
+    timeout: int = 60
+    max_retries: int = 3
+
+
+@dataclass
 class ModelConfig:
     """モデル設定データクラス"""
     model_path: str
     model_size: Optional[str] = None
     gguf: GGUFConfig = None
+    api: APIConfig = None
     trust_remote_code: bool = False  # セキュリティ: 任意コード実行の制御
 
 
@@ -376,6 +388,19 @@ class ConfigManager:
                 n_threads=gguf_data.get('n_threads', 8)
             )
 
+        # API設定を取得
+        api_config = APIConfig()
+        if 'api' in model_config:
+            api_data = model_config['api']
+            api_config = APIConfig(
+                enabled=api_data.get('enabled', False),
+                base_url=api_data.get('base_url', 'http://localhost:1234/v1'),
+                api_key=api_data.get('api_key', ''),
+                model=api_data.get('model', 'local-model'),
+                timeout=api_data.get('timeout', 60),
+                max_retries=api_data.get('max_retries', 3)
+            )
+
         # trust_remote_code 設定を取得（デフォルト: False）
         trust_remote_code = model_config.get('trust_remote_code', False)
 
@@ -383,6 +408,7 @@ class ConfigManager:
             model_path=platform_config.get('model_path'),
             model_size=platform_config.get('model_size'),
             gguf=gguf_config,
+            api=api_config,
             trust_remote_code=trust_remote_code
         )
     
