@@ -18,7 +18,6 @@ from dataclasses import dataclass
 @dataclass
 class DynamicBufferConfig:
     """動的バッファ設定データクラス"""
-    enabled: bool = True
     min_duration: float = 2.0
     max_duration: float = 30.0
     short_pause: float = 0.3
@@ -352,7 +351,6 @@ class ConfigManager:
             if 'dynamic_buffer' in self._config.get('audio', {}):
                 db_data = self._config['audio']['dynamic_buffer']
                 dynamic_buffer_config = DynamicBufferConfig(
-                    enabled=db_data.get('enabled', True),
                     min_duration=db_data.get('min_duration', 2.0),
                     max_duration=db_data.get('max_duration', 30.0),
                     short_pause=db_data.get('short_pause', 0.3),

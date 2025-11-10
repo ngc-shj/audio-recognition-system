@@ -74,7 +74,6 @@ audio:
 
   # 動的バッファ設定（より適切な文章区切りのため）
   dynamic_buffer:
-    enabled: true  # falseにすると従来の固定バッファ方式に戻ります
     min_duration: 2.0  # 秒: 最小バッファ長
     max_duration: 30.0  # 秒: 最大バッファ長（強制区切り）
     short_pause: 0.3  # 秒: 短いポーズ（文中の間）
