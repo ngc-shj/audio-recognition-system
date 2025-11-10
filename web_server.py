@@ -32,12 +32,9 @@ class ServerState:
         }
         self.recognition_thread = None
         self.is_recognition_running = False
-        self.stop_event = None  # threading.Event for stopping recognition
+        self.recognition_system = None  # AudioTranscriptionSystem instance
 
 server_state = ServerState()
-
-# グローバルな停止イベント（音声認識システムから参照）
-recognition_stop_event = threading.Event()
 
 # WebSocket接続の管理
 class ConnectionManager:
@@ -154,9 +151,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif message_type == "stop":
                 # 音声認識停止
-                if server_state.is_recognition_running:
+                if server_state.is_recognition_running and server_state.recognition_system:
                     print("\nStopping recognition system...")
-                    recognition_stop_event.set()
+                    # is_running Eventをクリアして停止
+                    server_state.recognition_system.is_running.clear()
                     server_state.is_recognition_running = False
 
                     await websocket.send_json({
@@ -257,7 +255,23 @@ def run_recognition_system(config_path: str = "config.yaml",
             if mode == "translation" and target_lang:
                 sys.argv.extend(["--target-lang", target_lang])
 
-            # メイン関数を実行（停止イベントをグローバル変数として利用可能にする）
+            # メイン関数を実行（ブロッキング）
+            # システムインスタンスは別スレッドで定期的にチェック
+            def check_and_store_instance():
+                """定期的に_system_instanceをチェックしてserver_stateに保存"""
+                import time
+                for _ in range(50):  # 最大5秒待機
+                    time.sleep(0.1)
+                    if hasattr(main_module, '_system_instance') and main_module._system_instance:
+                        server_state.recognition_system = main_module._system_instance
+                        print("System instance captured for stop control")
+                        break
+
+            # インスタンスキャプチャ用スレッドを開始
+            capture_thread = threading.Thread(target=check_and_store_instance, daemon=True)
+            capture_thread.start()
+
+            # メイン関数を実行（ブロッキング）
             main_module.main()
     except KeyboardInterrupt:
         print("\nRecognition system interrupted")
@@ -267,9 +281,9 @@ def run_recognition_system(config_path: str = "config.yaml",
         traceback.print_exc()
     finally:
         # スレッド終了時にステータスを更新
-        if server_state.is_recognition_running:
-            server_state.is_recognition_running = False
-            print("Recognition system stopped")
+        server_state.is_recognition_running = False
+        server_state.recognition_system = None
+        print("Recognition system stopped")
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000,
