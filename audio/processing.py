@@ -21,8 +21,7 @@ class AudioProcessing:
 
     AudioConfigデータクラスを使用して音声データを処理します。
     フィルタ係数はコンストラクタで事前計算し、毎バッファでの再計算を回避。
-
-    改善版: スマートVADと動的バッファサイズでより適切な文章区切りを実現
+    スマートVADと動的バッファサイズでより適切な文章区切りを実現。
     """
 
     def __init__(self, audio_config, audio_queue, processing_queue):
@@ -46,21 +45,11 @@ class AudioProcessing:
         )
 
         # 動的バッファ設定（config.yamlから取得）
-        if self.config.dynamic_buffer and self.config.dynamic_buffer.enabled:
-            self.use_dynamic_buffer = True
-            self.min_buffer_duration = self.config.dynamic_buffer.min_duration
-            self.max_buffer_duration = self.config.dynamic_buffer.max_duration
-            self.short_pause_duration = self.config.dynamic_buffer.short_pause
-            self.medium_pause_duration = self.config.dynamic_buffer.medium_pause
-            self.long_pause_duration = self.config.dynamic_buffer.long_pause
-        else:
-            # 従来の固定バッファ方式
-            self.use_dynamic_buffer = False
-            self.min_buffer_duration = self.config.buffer_duration
-            self.max_buffer_duration = self.config.buffer_duration
-            self.short_pause_duration = 0.3
-            self.medium_pause_duration = self.config.silence_duration
-            self.long_pause_duration = self.config.silence_duration
+        self.min_buffer_duration = self.config.dynamic_buffer.min_duration
+        self.max_buffer_duration = self.config.dynamic_buffer.max_duration
+        self.short_pause_duration = self.config.dynamic_buffer.short_pause
+        self.medium_pause_duration = self.config.dynamic_buffer.medium_pause
+        self.long_pause_duration = self.config.dynamic_buffer.long_pause
 
         self.min_buffer_size = int(self.min_buffer_duration * self.config.sample_rate)
         self.max_buffer_size = int(self.max_buffer_duration * self.config.sample_rate)
@@ -70,7 +59,7 @@ class AudioProcessing:
 
     def processing_thread(self, is_running):
         """
-        改善版音声処理スレッドのメイン処理
+        音声処理スレッドのメイン処理
 
         動的バッファサイズとスマートなポーズ検出により、
         より適切な文章区切りで音声を処理します。
@@ -80,7 +69,7 @@ class AudioProcessing:
         last_voice_activity = time.time()
         buffer_start_time = time.time()
 
-        print("音声処理スレッド開始（改善版）")
+        print("音声処理スレッド開始")
 
         while is_running.is_set():
             try:
@@ -163,9 +152,9 @@ class AudioProcessing:
 
     def has_voice_activity(self, audio_data):
         """
-        改善版音声アクティビティ検出
+        音声アクティビティ検出
 
-        RMSエネルギーとゼロ交差率を組み合わせた、より精度の高いVAD
+        RMSエネルギーとゼロ交差率を組み合わせたVAD
 
         Args:
             audio_data: 音声データ
