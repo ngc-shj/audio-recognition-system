@@ -151,6 +151,16 @@ class ResourceConfig:
     max_threads: int
 
 
+@dataclass
+class TTSConfig:
+    """TTS (Text-to-Speech) 設定データクラス"""
+    enabled: bool = False
+    engine: str = "pyttsx3"
+    rate: int = 150  # words per minute
+    volume: float = 0.9  # 0.0-1.0
+    voice: Optional[str] = None  # voice ID
+
+
 class ConfigManager:
     """
     統合設定管理クラス（クリーン版）
@@ -507,9 +517,23 @@ class ConfigManager:
                 min_threads=self.get('resources', 'threads', 'min', default=2),
                 max_threads=self.get('resources', 'threads', 'max', default=8),
             )
-        
+
         return self._resources
-    
+
+    @property
+    def tts(self) -> TTSConfig:
+        """TTS設定を取得（キャッシュあり）"""
+        if not hasattr(self, '_tts') or self._tts is None:
+            self._tts = TTSConfig(
+                enabled=self.get('tts', 'enabled', default=False),
+                engine=self.get('tts', 'engine', default='pyttsx3'),
+                rate=self.get('tts', 'rate', default=150),
+                volume=self.get('tts', 'volume', default=0.9),
+                voice=self.get('tts', 'voice', default=None),
+            )
+
+        return self._tts
+
     def is_debug_enabled(self) -> bool:
         """デバッグモードが有効か"""
         return self.get('debug', 'enabled', default=False)

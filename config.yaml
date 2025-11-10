@@ -118,19 +118,27 @@ translation:
 # 出力設定
 output:
   directory: "logs"
-  
+
   # ログファイル設定
   logging:
     recognized_audio: true
     translated_text: true
     bilingual_log: true
-  
+
   # ファイル名フォーマット
   filename_format:
     timestamp: "%Y%m%d_%H%M%S"
     recognized: "recognized_audio_log_{lang}_{timestamp}.txt"
     translated: "translated_text_log_{source}-{target}_{timestamp}.txt"
     bilingual: "bilingual_translation_log_{source}-{target}_{timestamp}.txt"
+
+# TTS (Text-to-Speech) 設定
+tts:
+  enabled: false  # TTS機能を有効化
+  engine: "pyttsx3"  # TTS engine: pyttsx3
+  rate: 150  # 読み上げ速度 (words per minute)
+  volume: 0.9  # 音量 (0.0-1.0)
+  voice: null  # 音声ID (nullの場合はデフォルト)
 
 # システムリソース設定
 resources:

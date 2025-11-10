@@ -21,6 +21,13 @@ from recognition.speech_recognition import SpeechRecognition
 from translation.translator import Translation
 from utils.resource_manager import ResourceManager
 
+# TTS（オプショナル）
+try:
+    from tts import TextToSpeech
+    TTS_AVAILABLE = True
+except ImportError:
+    TTS_AVAILABLE = False
+
 
 class AudioRecognitionSystem:
     """音声認識＋翻訳システムのメインクラス"""
@@ -271,11 +278,21 @@ def main():
             config.language,
             debug=debug_mode
         )
+        # TTS初期化（オプショナル）
+        tts = None
+        if TTS_AVAILABLE and config.tts.enabled:
+            try:
+                tts = TextToSpeech(config.tts, debug=debug_mode)
+            except Exception as e:
+                print(f"Warning: TTS initialization failed: {e}")
+                tts = None
+
         translation = Translation(
-            translation_queue, 
+            translation_queue,
             config,  # ConfigManagerを渡す
             config.language,
-            debug=debug_mode
+            debug=debug_mode,
+            tts=tts  # TTSモジュールを渡す
         )
         
         # =====================================
