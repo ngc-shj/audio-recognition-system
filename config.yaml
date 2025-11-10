@@ -16,8 +16,8 @@ models:
   # 翻訳モデル (LLM)
   translation:
     darwin:  # macOS
-      #model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4" # MLX対応モデル
-      model_path: "mlx-community/llm-jp-3-3.7b-instruct"
+      model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4" # MLX対応モデル
+      #model_path: "mlx-community/llm-jp-3-3.7b-instruct"
     default:  # Linux/Windows
       model_path: "openai/gpt-oss-20b" # Hugging Faceリポジトリまたはローカルパス
 
@@ -29,8 +29,9 @@ models:
     # API Server設定 (LM Studio, Ollama, vLLM等のOpenAI互換API)
     # api.enabledがtrueの場合、ローカルモデルロードではなくAPIサーバーを使用
     api:
-      enabled: false  # trueに設定するとAPIサーバーを使用
-      base_url: "http://localhost:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
+      enabled: true  # trueに設定するとAPIサーバーを使用
+      #base_url: "http://localhost:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
+      base_url: "http://192.168.11.18:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
       api_key: ""  # API Key (不要な場合は空文字列)
       model: "local-model"  # 使用するモデル名 (サーバー側で設定したモデル名)
       timeout: 60  # タイムアウト時間（秒）
@@ -62,14 +63,24 @@ audio:
   sample_rate: 16000
   channels: 1
   chunk_size: 1024
-  buffer_duration: 5.0  # 秒
-  
+  buffer_duration: 5.0  # 秒（非推奨：動的バッファが有効な場合は無視されます）
+
   # 音声検出設定
   voice_detection:
     silence_threshold: 0.005
     voice_activity_threshold: 0.01
-    silence_duration: 1.0  # 秒
-  
+    silence_duration: 1.0  # 秒（非推奨：動的バッファが有効な場合は無視されます）
+    zero_crossing_rate_threshold: 0.1  # ゼロ交差率しきい値（VAD改善用）
+
+  # 動的バッファ設定（より適切な文章区切りのため）
+  dynamic_buffer:
+    enabled: true  # falseにすると従来の固定バッファ方式に戻ります
+    min_duration: 2.0  # 秒: 最小バッファ長
+    max_duration: 30.0  # 秒: 最大バッファ長（強制区切り）
+    short_pause: 0.3  # 秒: 短いポーズ（文中の間）
+    medium_pause: 0.8  # 秒: 中ポーズ（文の区切り）
+    long_pause: 1.5  # 秒: 長いポーズ（発話終了）
+
   # 入力デバイス (nullで自動検出)
   input_device: null
 

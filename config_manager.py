@@ -16,6 +16,17 @@ from dataclasses import dataclass
 
 
 @dataclass
+class DynamicBufferConfig:
+    """動的バッファ設定データクラス"""
+    enabled: bool = True
+    min_duration: float = 2.0
+    max_duration: float = 30.0
+    short_pause: float = 0.3
+    medium_pause: float = 0.8
+    long_pause: float = 1.5
+
+
+@dataclass
 class AudioConfig:
     """音声設定データクラス"""
     format_str: str
@@ -29,6 +40,8 @@ class AudioConfig:
     silence_threshold: float
     voice_activity_threshold: float
     silence_duration: float
+    zero_crossing_rate_threshold: float = 0.1
+    dynamic_buffer: DynamicBufferConfig = None
     input_device: Optional[int] = None
 
 
@@ -333,7 +346,20 @@ class ConfigManager:
             format_val = self._get_format_from_string(format_str)
             sample_rate = self.get('audio', 'sample_rate')
             buffer_duration = self.get('audio', 'buffer_duration')
-            
+
+            # 動的バッファ設定を取得
+            dynamic_buffer_config = DynamicBufferConfig()
+            if 'dynamic_buffer' in self._config.get('audio', {}):
+                db_data = self._config['audio']['dynamic_buffer']
+                dynamic_buffer_config = DynamicBufferConfig(
+                    enabled=db_data.get('enabled', True),
+                    min_duration=db_data.get('min_duration', 2.0),
+                    max_duration=db_data.get('max_duration', 30.0),
+                    short_pause=db_data.get('short_pause', 0.3),
+                    medium_pause=db_data.get('medium_pause', 0.8),
+                    long_pause=db_data.get('long_pause', 1.5)
+                )
+
             self._audio = AudioConfig(
                 format_str=format_str,
                 format=format_val,
@@ -346,9 +372,11 @@ class ConfigManager:
                 silence_threshold=self.get('audio', 'voice_detection', 'silence_threshold'),
                 voice_activity_threshold=self.get('audio', 'voice_detection', 'voice_activity_threshold'),
                 silence_duration=self.get('audio', 'voice_detection', 'silence_duration'),
+                zero_crossing_rate_threshold=self.get('audio', 'voice_detection', 'zero_crossing_rate_threshold', default=0.1),
+                dynamic_buffer=dynamic_buffer_config,
                 input_device=self.get('audio', 'input_device'),
             )
-        
+
         return self._audio
     
     def get_model_config(self, model_type: str) -> ModelConfig:
