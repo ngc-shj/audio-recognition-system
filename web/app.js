@@ -19,9 +19,11 @@ const stopBtn = document.getElementById('stopBtn');
 const clearBtn = document.getElementById('clearBtn');
 const recognizedOutput = document.getElementById('recognizedOutput');
 const translatedOutput = document.getElementById('translatedOutput');
+const modeSelect = document.getElementById('mode');
 const sourceLang = document.getElementById('sourceLang');
 const targetLang = document.getElementById('targetLang');
 const ttsEnabled = document.getElementById('ttsEnabled');
+const translationSettings = document.getElementById('translationSettings');
 
 // WebSocket接続を確立
 function connectWebSocket() {
@@ -185,6 +187,7 @@ startBtn.addEventListener('click', () => {
     if (!isConnected || !ws) return;
 
     const settings = {
+        mode: modeSelect.value,
         source_lang: sourceLang.value,
         target_lang: targetLang.value,
         tts_enabled: ttsEnabled.checked
@@ -206,15 +209,50 @@ startBtn.addEventListener('click', () => {
 stopBtn.addEventListener('click', () => {
     if (!isConnected || !ws) return;
 
+    console.log('Stopping recognition');
+
     ws.send(JSON.stringify({
         type: 'stop'
     }));
+
+    // UI状態を即座に更新
+    stopBtn.disabled = true;
+    updateStatus('connecting', 'Stopping recognition...');
 });
 
 // クリアボタン
 clearBtn.addEventListener('click', () => {
     recognizedOutput.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Cleared</p>';
     translatedOutput.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Cleared</p>';
+});
+
+// モード変更時の処理
+function updateUIForMode(mode) {
+    const translatedPanel = document.querySelector('.panel:has(#translatedOutput)');
+
+    if (mode === 'transcript') {
+        // Transcript mode: Hide translation settings and panel
+        translationSettings.classList.add('hidden');
+        if (translatedPanel) {
+            translatedPanel.style.display = 'none';
+        }
+    } else {
+        // Translation mode: Show translation settings and panel
+        translationSettings.classList.remove('hidden');
+        if (translatedPanel) {
+            translatedPanel.style.display = '';
+        }
+    }
+}
+
+// モード選択の変更
+modeSelect.addEventListener('change', () => {
+    const mode = modeSelect.value;
+    console.log('Mode changed to:', mode);
+    updateUIForMode(mode);
+
+    // Update server config
+    serverConfig.mode = mode;
 });
 
 // 設定変更時の処理
@@ -244,6 +282,9 @@ async function loadServerConfig() {
             console.log('Server config loaded:', serverConfig);
 
             // UIに反映
+            if (modeSelect && serverConfig.mode) {
+                modeSelect.value = serverConfig.mode;
+            }
             if (sourceLang && serverConfig.source_lang) {
                 sourceLang.value = serverConfig.source_lang;
             }
@@ -251,13 +292,8 @@ async function loadServerConfig() {
                 targetLang.value = serverConfig.target_lang;
             }
 
-            // transcriptモードの場合は翻訳パネルを非表示
-            if (serverConfig.mode === 'transcript') {
-                const translatedPanel = document.querySelector('.panel:has(#translatedOutput)');
-                if (translatedPanel) {
-                    translatedPanel.style.display = 'none';
-                }
-            }
+            // モードに応じてUIを更新
+            updateUIForMode(serverConfig.mode);
         }
     } catch (error) {
         console.error('Failed to load server config:', error);

@@ -229,6 +229,17 @@
             gap: 10px;
         }
 
+        .settings-section {
+            margin-left: 20px;
+            padding-left: 15px;
+            border-left: 3px solid #667eea;
+            margin-top: 15px;
+        }
+
+        .settings-section.hidden {
+            display: none;
+        }
+
         footer {
             text-align: center;
             color: white;
@@ -282,6 +293,17 @@
 
         <div class="settings-panel">
             <h2>⚙ Settings</h2>
+
+            <!-- Mode Selection -->
+            <div class="settings-group">
+                <label for="mode">Mode:</label>
+                <select id="mode">
+                    <option value="translation">Translation (Recognition + Translation)</option>
+                    <option value="transcript">Transcript Only (Recognition)</option>
+                </select>
+            </div>
+
+            <!-- Source Language (always visible) -->
             <div class="settings-group">
                 <label for="sourceLang">Source Language:</label>
                 <select id="sourceLang">
@@ -295,23 +317,26 @@
                 </select>
             </div>
 
-            <div class="settings-group">
-                <label for="targetLang">Target Language:</label>
-                <select id="targetLang">
-                    <option value="ja">Japanese</option>
-                    <option value="en">English</option>
-                    <option value="es">Spanish</option>
-                    <option value="fr">French</option>
-                    <option value="de">German</option>
-                    <option value="zh">Chinese</option>
-                    <option value="ko">Korean</option>
-                </select>
-            </div>
+            <!-- Translation Settings (only for translation mode) -->
+            <div id="translationSettings" class="settings-section">
+                <div class="settings-group">
+                    <label for="targetLang">Target Language (Translation):</label>
+                    <select id="targetLang">
+                        <option value="ja">Japanese</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ko">Korean</option>
+                    </select>
+                </div>
 
-            <div class="settings-group">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="ttsEnabled" checked>
-                    <label for="ttsEnabled">Enable Text-to-Speech</label>
+                <div class="settings-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="ttsEnabled" checked>
+                        <label for="ttsEnabled">Enable Text-to-Speech (Translation)</label>
+                    </div>
                 </div>
             </div>
         </div>

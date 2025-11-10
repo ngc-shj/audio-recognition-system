@@ -32,8 +32,12 @@ class ServerState:
         }
         self.recognition_thread = None
         self.is_recognition_running = False
+        self.stop_event = None  # threading.Event for stopping recognition
 
 server_state = ServerState()
+
+# グローバルな停止イベント（音声認識システムから参照）
+recognition_stop_event = threading.Event()
 
 # WebSocket接続の管理
 class ConnectionManager:
@@ -107,9 +111,17 @@ async def websocket_endpoint(websocket: WebSocket):
                 if not server_state.is_recognition_running:
                     # 設定を取得
                     settings = data.get("settings", {})
+                    mode = settings.get("mode") or server_state.config.get("mode", "translation")
                     source_lang = settings.get("source_lang") or server_state.config.get("source_lang")
                     target_lang = settings.get("target_lang") or server_state.config.get("target_lang")
-                    mode = server_state.config.get("mode", "translation")
+
+                    # サーバー設定を更新
+                    server_state.config["mode"] = mode
+                    server_state.config["source_lang"] = source_lang
+                    server_state.config["target_lang"] = target_lang
+
+                    # 停止イベントをクリア
+                    recognition_stop_event.clear()
 
                     # 認識システムを起動
                     web_ui_url = "http://localhost:8000"
@@ -141,12 +153,29 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
 
             elif message_type == "stop":
-                # 音声認識停止（現在のアーキテクチャでは停止できない）
-                await websocket.send_json({
-                    "type": "status",
-                    "message": "Stop is not supported yet. Please restart the server.",
-                    "status": "running" if server_state.is_recognition_running else "stopped"
-                })
+                # 音声認識停止
+                if server_state.is_recognition_running:
+                    print("\nStopping recognition system...")
+                    recognition_stop_event.set()
+                    server_state.is_recognition_running = False
+
+                    await websocket.send_json({
+                        "type": "status",
+                        "message": "Recognition stopped",
+                        "status": "stopped"
+                    })
+                    # 全クライアントに通知
+                    await manager.broadcast({
+                        "type": "status",
+                        "message": "Recognition stopped",
+                        "status": "stopped"
+                    })
+                else:
+                    await websocket.send_json({
+                        "type": "status",
+                        "message": "Recognition not running",
+                        "status": "stopped"
+                    })
 
             elif message_type == "settings":
                 # 設定変更
@@ -228,12 +257,19 @@ def run_recognition_system(config_path: str = "config.yaml",
             if mode == "translation" and target_lang:
                 sys.argv.extend(["--target-lang", target_lang])
 
-            # メイン関数を実行
+            # メイン関数を実行（停止イベントをグローバル変数として利用可能にする）
             main_module.main()
+    except KeyboardInterrupt:
+        print("\nRecognition system interrupted")
     except Exception as e:
         print(f"Error starting recognition system: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # スレッド終了時にステータスを更新
+        if server_state.is_recognition_running:
+            server_state.is_recognition_running = False
+            print("Recognition system stopped")
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000,
