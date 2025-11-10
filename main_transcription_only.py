@@ -59,10 +59,11 @@ class AudioTranscriptionSystem:
             print("終了しています。しばらくお待ちください...")
             print("="*60)
             self.is_running.clear()
-        
+
+        # スレッド終了を待機（タイムアウト: 2秒）
         for thread in threads:
-            thread.join()
-        
+            thread.join(timeout=2.0)
+
         print("\nプログラムを終了しました。\n")
 
 
@@ -136,25 +137,29 @@ def main():
             profile=args.profile
         )
         
-        # コマンドライン引数による上書き
+        # コマンドライン引数による上書き（公式 API を使用）
         if args.output_dir:
-            config._config['output']['directory'] = args.output_dir
-            config._output = None  # キャッシュをクリア
+            config.set_output_dir(args.output_dir)
             print(f"   出力ディレクトリを上書き: {args.output_dir}")
-        
+
         if args.model_size:
-            platform = config.platform
-            config._config['models']['asr'][platform]['model_size'] = args.model_size
+            # ASRモデルサイズの上書き（platform 固有）
+            if 'models' not in config._config:
+                config._config['models'] = {}
+            if 'asr' not in config._config['models']:
+                config._config['models']['asr'] = {}
+            if config.platform not in config._config['models']['asr']:
+                config._config['models']['asr'][config.platform] = {}
+            config._config['models']['asr'][config.platform]['model_size'] = args.model_size
             print(f"   モデルサイズを上書き: {args.model_size}")
-        
+
         if args.debug:
-            config._config['debug']['enabled'] = True
+            config.set_debug(True)
             print(f"   デバッグモードを上書き: 有効")
-        
-        # 言語設定の上書き
+
+        # 言語設定の上書き（公式 API を使用）
         if args.source_lang:
-            config._config['language']['source'] = args.source_lang
-            config._language = None  # キャッシュをクリア
+            config.set_language(args.source_lang, config.language.target)
             print(f"   入力言語を上書き: {args.source_lang}")
         
         # =====================================

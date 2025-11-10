@@ -12,6 +12,9 @@ if sys.platform == 'darwin':
 else:
     import whisper
 
+# 共通の音声正規化関数
+from utils.audio_normalization import normalize_audio
+
 class SpeechRecognition:
     def __init__(self, audio_config, processing_queue, translation_queue,
                  config_manager, lang_config, debug=False):
@@ -20,7 +23,7 @@ class SpeechRecognition:
         self.translation_queue = translation_queue
         self.lang_config = lang_config
         self.debug = debug
-        
+
         # ConfigManagerから設定を取得
         if hasattr(config_manager, 'get_model_config'):
             # ConfigManagerの場合
@@ -45,17 +48,30 @@ class SpeechRecognition:
             f"recognized_audio_log_{lang_config.source}_{current_time}.txt"
         )
 
+        # デバッグモード: 音声ファイル出力ディレクトリ
+        self.debug_audio_dir = os.path.join(self.output_dir, "debug_audio") if debug else None
+        if self.debug_audio_dir:
+            os.makedirs(self.debug_audio_dir, exist_ok=True)
+
+        # パフォーマンス最適化：ログバッファ
+        self._log_buffer = []
+        self._log_buffer_size = 10  # 10件ごとに書き込み
+
     def recognition_thread(self, is_running):
         last_text = ""
         last_text_time = 0
         while is_running.is_set():
             try:
-                audio_data = self.processing_queue.get(timeout=1)
+                audio_data = self.processing_queue.get(timeout=0.5)
                 normalized_audio = self.normalize_audio(audio_data)
                 
                 if self.debug:
                     print("\n音声認識処理開始")
-                    self.save_audio_debug(audio_data, f"debug_audio_{time.time()}.wav")
+                    debug_file = os.path.join(
+                        self.debug_audio_dir,
+                        f"debug_audio_{int(time.time() * 1000)}.wav"
+                    )
+                    self.save_audio_debug(audio_data, debug_file)
                 
                 try:
                     if sys.platform == 'darwin':
@@ -74,16 +90,16 @@ class SpeechRecognition:
                     continue
                 
                 text = result['text'].strip()
-                
+
                 current_time = time.time()
                 if text and (text != last_text or current_time - last_text_time > 5):
                     self.print_with_strictly_controlled_linebreaks(text)
+                    last_text = text
                     last_text_time = current_time
                     if self.translation_queue:
                         self.translation_queue.put(text)
-                    # 認識結果をファイルに追記
-                    with open(self.log_file_path, "a", encoding="utf-8") as log_file:
-                        log_file.write(text + "\n")
+                    # 認識結果をバッファに追加（I/O効率化）
+                    self._add_to_log_buffer(text)
 
                 elif self.debug:
                     print("処理後のテキストが空か、直前の文と同じため出力をスキップします")
@@ -94,24 +110,51 @@ class SpeechRecognition:
             except Exception as e:
                 print(f"\nエラー (認識スレッド): {e}", flush=True)
 
+        # スレッド終了時に残りのバッファをフラッシュ
+        self._flush_log_buffer()
+
     def normalize_audio(self, audio_data):
-        if self.config.format == pyaudio.paFloat32:
-            return np.clip(audio_data, -1.0, 1.0)
-        elif self.config.format == pyaudio.paInt8:
-            return audio_data.astype(np.float32) / 128.0
-        elif self.config.format == pyaudio.paInt16:
-            return audio_data.astype(np.float32) / 32768.0
-        elif self.config.format == pyaudio.paInt32:
-            return audio_data.astype(np.float32) / 2147483648.0
-        else:
-            raise ValueError(f"Unsupported audio format: {self.config.format}")
+        """
+        音声データを正規化
+
+        Note:
+            実装は utils.audio_normalization.normalize_audio に委譲
+        """
+        return normalize_audio(audio_data, self.config.format)
 
     def save_audio_debug(self, audio_data, filename):
         with wave.open(filename, 'wb') as wf:
-            wf.setnchannels(self.config.CHANNELS)
+            wf.setnchannels(self.config.channels)
             wf.setsampwidth(pyaudio.get_sample_size(self.config.format))
-            wf.setframerate(self.config.RATE)
+            wf.setframerate(self.config.sample_rate)
             wf.writeframes(audio_data.tobytes())
+
+    def _add_to_log_buffer(self, text):
+        """
+        ログテキストをバッファに追加し、満杯時に一括書き込み
+
+        Args:
+            text: 書き込むテキスト
+        """
+        self._log_buffer.append(text)
+        if len(self._log_buffer) >= self._log_buffer_size:
+            self._flush_log_buffer()
+
+    def _flush_log_buffer(self):
+        """バッファの内容をファイルに一括書き込み"""
+        if not self._log_buffer:
+            return
+        try:
+            with open(self.log_file_path, "a", encoding="utf-8") as log_file:
+                for text in self._log_buffer:
+                    log_file.write(text + "\n")
+            self._log_buffer.clear()
+        except IOError as e:
+            print(f"ログ書き込みエラー: {e}", flush=True)
+
+    def close(self):
+        """クローズ時に残りのバッファをフラッシュ"""
+        self._flush_log_buffer()
 
     @staticmethod
     def is_sentence_end(word):

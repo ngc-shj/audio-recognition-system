@@ -49,6 +49,7 @@ class ModelConfig:
     model_path: str
     model_size: Optional[str] = None
     gguf: GGUFConfig = None
+    trust_remote_code: bool = False  # セキュリティ: 任意コード実行の制御
 
 
 @dataclass
@@ -374,11 +375,15 @@ class ConfigManager:
                 n_gpu_layers=gguf_data.get('n_gpu_layers', -1),
                 n_threads=gguf_data.get('n_threads', 8)
             )
-        
+
+        # trust_remote_code 設定を取得（デフォルト: False）
+        trust_remote_code = model_config.get('trust_remote_code', False)
+
         return ModelConfig(
             model_path=platform_config.get('model_path'),
             model_size=platform_config.get('model_size'),
-            gguf=gguf_config
+            gguf=gguf_config,
+            trust_remote_code=trust_remote_code
         )
     
     @property
@@ -456,11 +461,89 @@ class ConfigManager:
     def is_debug_enabled(self) -> bool:
         """デバッグモードが有効か"""
         return self.get('debug', 'enabled', default=False)
-    
+
+    # =====================================
+    # 公式セッター API（キャッシュ無効化付き）
+    # =====================================
+
+    def set_output_dir(self, directory: str) -> None:
+        """
+        出力ディレクトリを設定
+
+        Args:
+            directory: 出力ディレクトリパス
+        """
+        if 'output' not in self._config:
+            self._config['output'] = {}
+        self._config['output']['directory'] = directory
+        # キャッシュを無効化
+        self._output = None
+
+    def set_language(self, source: str, target: str) -> None:
+        """
+        翻訳言語を設定
+
+        Args:
+            source: ソース言語コード（例: 'en'）
+            target: ターゲット言語コード（例: 'ja'）
+        """
+        if 'language' not in self._config:
+            self._config['language'] = {}
+        self._config['language']['source'] = source
+        self._config['language']['target'] = target
+        # キャッシュを無効化
+        self._language = None
+
+    def set_batch_size(self, batch_size: int) -> None:
+        """
+        翻訳バッチサイズを設定
+
+        Args:
+            batch_size: バッチサイズ（正の整数）
+        """
+        if batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, got {batch_size}")
+        if 'translation' not in self._config:
+            self._config['translation'] = {}
+        self._config['translation']['batch_size'] = batch_size
+        # キャッシュを無効化
+        self._translation = None
+
+    def set_model_path(self, model_type: str, model_path: str) -> None:
+        """
+        モデルパスを設定
+
+        Args:
+            model_type: 'asr' または 'translation'
+            model_path: モデルパス（Hugging FaceリポジトリIDまたはローカルパス）
+        """
+        if model_type not in ['asr', 'translation']:
+            raise ValueError(f"model_type must be 'asr' or 'translation', got {model_type}")
+
+        if 'models' not in self._config:
+            self._config['models'] = {}
+        if model_type not in self._config['models']:
+            self._config['models'][model_type] = {}
+        if self.platform not in self._config['models'][model_type]:
+            self._config['models'][model_type][self.platform] = {}
+
+        self._config['models'][model_type][self.platform]['model_path'] = model_path
+
+    def set_debug(self, enabled: bool) -> None:
+        """
+        デバッグモードを設定
+
+        Args:
+            enabled: デバッグ有効フラグ
+        """
+        if 'debug' not in self._config:
+            self._config['debug'] = {}
+        self._config['debug']['enabled'] = enabled
+
     def to_dict(self) -> Dict[str, Any]:
         """設定を辞書として取得（デバッグ用）"""
         return self._config.copy()
-    
+
     def __repr__(self):
         """デバッグ用の文字列表現"""
         return (
