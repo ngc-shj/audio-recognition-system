@@ -134,13 +134,13 @@ output:
 
 # TTS (Text-to-Speech) 設定
 tts:
-  enabled: false  # TTS機能を有効化
+  enabled: true  # TTS機能を有効化
   engine: "edge-tts"  # TTS engine: edge-tts (Microsoft Edge Neural TTS)
   voice: "ja-JP-NanamiNeural"  # 音声ID (日本語音声: Nanami, Mayu, Aoi, Shiori, Keita, Daichi, Naoki)
   rate: "+0%"  # 読み上げ速度 (-50% to +100%)
   volume: "+0%"  # 音量 (-50% to +100%)
   pitch: "+0Hz"  # ピッチ (-50Hz to +50Hz)
-  output_device: "BlackHole 2ch"  # 出力デバイス名 (nullの場合はデフォルト、ループバック防止のため推奨)
+  output_device: "Multi-Output Device"  # 出力デバイス名 (BlackHole + 物理スピーカーの両方に出力)
 
 # システムリソース設定
 resources:
