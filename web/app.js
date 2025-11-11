@@ -36,6 +36,31 @@ const langSwapBtn = document.getElementById('langSwapBtn');
 // ペアリング用のマップ（タイムスタンプでペアを管理）
 let textPairs = new Map();
 
+// Toast notification
+const toast = document.getElementById('toast');
+let toastTimeout = null;
+
+function showToast(message, type = 'info', duration = 4000) {
+    // Clear any existing timeout
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+
+    // Set message and type
+    toast.textContent = message;
+    toast.className = `toast ${type}`;
+
+    // Show toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+
+    // Hide after duration
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
 // 設定パネルの開閉
 function openSettings() {
     settingsPanel.classList.add('open');
@@ -73,9 +98,11 @@ langSwapBtn.addEventListener('click', () => {
             }
         }));
 
-        // ユーザーに通知
-        console.log('Language settings changed. Please stop and restart recognition to apply.');
-        // オプション: 視覚的な通知を追加することもできます
+        // ユーザーに視覚的な通知
+        showToast('Language settings changed. Please stop and restart recognition to apply changes.', 'warning', 5000);
+    } else {
+        // 停止中の場合は次回起動時に適用されることを通知
+        showToast(`Languages swapped: ${headerSourceLang.value.toUpperCase()} → ${headerTargetLang.value.toUpperCase()}`, 'info', 3000);
     }
 
     // サーバー設定を更新
@@ -490,7 +517,9 @@ headerSourceLang.addEventListener('change', () => {
                 tts_enabled: ttsEnabled.checked
             }
         }));
-        console.log('Language settings changed. Please stop and restart recognition to apply.');
+        showToast('Source language changed. Please stop and restart recognition to apply.', 'warning', 5000);
+    } else {
+        showToast(`Source language set to ${newLang.toUpperCase()}`, 'info', 2000);
     }
 
     // サーバー設定を更新
@@ -514,7 +543,9 @@ headerTargetLang.addEventListener('change', () => {
                 tts_enabled: ttsEnabled.checked
             }
         }));
-        console.log('Language settings changed. Please stop and restart recognition to apply.');
+        showToast('Target language changed. Please stop and restart recognition to apply.', 'warning', 5000);
+    } else {
+        showToast(`Target language set to ${newLang.toUpperCase()}`, 'info', 2000);
     }
 
     // サーバー設定を更新
