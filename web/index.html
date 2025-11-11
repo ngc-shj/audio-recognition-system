@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recognition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .lang-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .lang-select {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .lang-select:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-select option {
+            background: #667eea;
+            color: white;
+        }
+
+        .lang-arrow {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+        }
+
+        .lang-swap-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .lang-swap-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(180deg);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #44ff44;
+        }
+
+        .status-dot.running {
+            background: #4444ff;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hamburger-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hamburger-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-start {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-stop {
+            background: #f5576c;
+            color: white;
+        }
+
+        .btn-clear {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .main-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .text-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+        }
+
+        .text-entry {
+            padding: 20px;
+            margin-bottom: 12px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            gap: 12px;
+        }
+
+        .text-pair {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .play-btn {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
+        .original-text {
+            font-size: 0.9rem;
+            line-height: 1.2;
+            color: #999;
+            padding: 0;
+            margin: 0;
+        }
+
+        .translated-text {
+            font-size: 1.25rem;
+            line-height: 1.3;
+            color: #1a1a1a;
+            font-weight: 400;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Transcript only mode (no translation) */
+        .text-entry.transcript-only .original-text {
+            font-size: 1.25rem;
+            line-height: 1.4;
+            color: #1a1a1a;
+            font-weight: 400;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: #aaa;
+            font-weight: 400;
+            margin-right: 8px;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .settings-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 5px 10px;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .settings-group select,
+        .settings-group input[type="checkbox"] {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+        }
+
+        .settings-group select {
+            width: 100%;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-section {
+            margin-left: 20px;
+            padding-left: 15px;
+            border-left: 3px solid #667eea;
+            margin-top: 15px;
+        }
+
+        .settings-section.hidden {
+            display: none;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            max-width: 400px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .toast.warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="container">
+        <header>
+            <h1>🎤 Audio Recognition</h1>
+            <div class="header-right">
+                <div class="lang-toggle">
+                    <select class="lang-select" id="headerSourceLang">
+                        <option value="en">EN</option>
+                        <option value="ja">JA</option>
+                        <option value="es">ES</option>
+                        <option value="fr">FR</option>
+                        <option value="de">DE</option>
+                        <option value="zh">ZH</option>
+                        <option value="ko">KO</option>
+                    </select>
+                    <button class="lang-swap-btn" id="langSwapBtn">⇄</button>
+                    <select class="lang-select" id="headerTargetLang">
+                        <option value="ja">JA</option>
+                        <option value="en">EN</option>
+                        <option value="es">ES</option>
+                        <option value="fr">FR</option>
+                        <option value="de">DE</option>
+                        <option value="zh">ZH</option>
+                        <option value="ko">KO</option>
+                    </select>
+                </div>
+                <div class="status-bar">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                <div class="controls">
+                    <button class="btn-start" id="startBtn" disabled>▶ Start</button>
+                    <button class="btn-stop" id="stopBtn" disabled>⏹ Stop</button>
+                    <button class="btn-clear" id="clearBtn">Clear</button>
+                    <button class="hamburger-btn" id="settingsBtn">⚙</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="text-output" id="liveOutput">
+                <p style="color: #999; text-align: center; padding: 20px;">
+                    Waiting for recognition to start...
+                </p>
+            </div>
+        </div>
+
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-header">
+                <h2>⚙ Settings</h2>
+                <button class="close-btn" id="closeSettingsBtn">✕</button>
+            </div>
+
+            <!-- Mode Selection -->
+            <div class="settings-group">
+                <label for="mode">Mode:</label>
+                <select id="mode">
+                    <option value="translation">Translation (Recognition + Translation)</option>
+                    <option value="transcript">Transcript Only (Recognition)</option>
+                </select>
+            </div>
+
+            <!-- Source Language (always visible) -->
+            <div class="settings-group">
+                <label for="sourceLang">Source Language:</label>
+                <select id="sourceLang">
+                    <option value="en">English</option>
+                    <option value="ja">Japanese</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ko">Korean</option>
+                </select>
+            </div>
+
+            <!-- Translation Settings (only for translation mode) -->
+            <div id="translationSettings" class="settings-section">
+                <div class="settings-group">
+                    <label for="targetLang">Target Language (Translation):</label>
+                    <select id="targetLang">
+                        <option value="ja">Japanese</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ko">Korean</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="ttsEnabled" checked>
+                        <label for="ttsEnabled">Enable Text-to-Speech (Translation)</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Settings -->
+            <div class="settings-group">
+                <label>Display Options:</label>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="showTimestamp" checked>
+                    <label for="showTimestamp">Show Timestamp</label>
+                </div>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="showLanguage" checked>
+                    <label for="showLanguage">Show Language Code</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/app.js"></script>
+</body>
+</html>

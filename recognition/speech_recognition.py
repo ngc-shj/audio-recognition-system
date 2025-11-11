@@ -17,12 +17,13 @@ from utils.audio_normalization import normalize_audio
 
 class SpeechRecognition:
     def __init__(self, audio_config, processing_queue, translation_queue,
-                 config_manager, lang_config, debug=False):
+                 config_manager, lang_config, debug=False, web_ui=None):
         self.config = audio_config
         self.processing_queue = processing_queue
         self.translation_queue = translation_queue
         self.lang_config = lang_config
         self.debug = debug
+        self.web_ui = web_ui  # Web UI Bridge
 
         # ConfigManagerから設定を取得
         if hasattr(config_manager, 'get_model_config'):
@@ -93,13 +94,24 @@ class SpeechRecognition:
 
                 current_time = time.time()
                 if text and (text != last_text or current_time - last_text_time > 5):
-                    self.print_with_strictly_controlled_linebreaks(text)
+                    # Web UIモードではstdoutに出力しない
+                    if not self.web_ui:
+                        self.print_with_strictly_controlled_linebreaks(text)
                     last_text = text
                     last_text_time = current_time
+
+                    # ペアIDを生成（翻訳と紐付けるため）
+                    import uuid
+                    pair_id = str(uuid.uuid4())
+
                     if self.translation_queue:
-                        self.translation_queue.put(text)
+                        # ペアIDと一緒に送信
+                        self.translation_queue.put({'text': text, 'pair_id': pair_id})
                     # 認識結果をバッファに追加（I/O効率化）
                     self._add_to_log_buffer(text)
+                    # Web UIに送信（ペアID付き）
+                    if self.web_ui:
+                        self.web_ui.send_recognized_text(text, self.lang_config.source, pair_id)
 
                 elif self.debug:
                     print("処理後のテキストが空か、直前の文と同じため出力をスキップします")

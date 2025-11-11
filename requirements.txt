@@ -3,6 +3,7 @@ pyyaml>=6.0
 psutil
 noisereduce
 scipy>=1.11
+requests>=2.31.0
 
 # --- Hugging Face / LLM 共通 ---
 transformers>=4.38.0
@@ -21,6 +22,11 @@ edge-tts>=7.0.0
 
 # --- API Server Mode (Optional: for LM Studio, Ollama, vLLM, etc.) ---
 openai>=1.0.0
+
+# --- Web UI (Optional) ---
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
 
 # --- macOS (MLX 経路：GGUF 直読み & Whisper MLX) ---
 mlx>=0.29.0; sys_platform == "darwin"

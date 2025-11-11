@@ -18,6 +18,16 @@ from audio.processing import AudioProcessing
 from recognition.speech_recognition import SpeechRecognition
 from utils.resource_manager import ResourceManager
 
+# Web UI Bridge (オプショナル)
+try:
+    from web_ui_bridge import WebUIBridge
+    WEB_UI_AVAILABLE = True
+except ImportError:
+    WEB_UI_AVAILABLE = False
+
+# グローバルシステムインスタンス（Web UIから停止するため）
+_system_instance = None
+
 
 class AudioTranscriptionSystem:
     """音声文字起こしシステムのメインクラス"""
@@ -108,7 +118,18 @@ def parse_arguments():
         action="store_true",
         help="デバッグモードを有効化"
     )
-    
+    parser.add_argument(
+        "--web-ui",
+        action="store_true",
+        help="Web UIとの連携を有効化"
+    )
+    parser.add_argument(
+        "--web-ui-url",
+        type=str,
+        default="http://localhost:8000",
+        help="Web UIサーバーのURL"
+    )
+
     return parser.parse_args()
 
 
@@ -172,7 +193,27 @@ def main():
         print(f"   出力先: {config.output.directory}")
         
         debug_mode = config.is_debug_enabled()
-        
+
+        # =====================================
+        # Web UI Bridge の初期化
+        # =====================================
+        web_ui = None
+        if args.web_ui and WEB_UI_AVAILABLE:
+            try:
+                web_ui = WebUIBridge(
+                    server_url=args.web_ui_url,
+                    enabled=True
+                )
+                print(f"\nWeb UI連携を有効化しました: {args.web_ui_url}")
+                # Note: Web UIサーバー側で"running"ステータスを送信するため、
+                # ここでは初期ステータスを送信しない
+                # web_ui.send_status("stopped", "System initialized")
+            except Exception as e:
+                print(f"Warning: Web UI Bridge initialization failed: {e}")
+                web_ui = None
+        elif args.web_ui and not WEB_UI_AVAILABLE:
+            print("\nWarning: Web UI Bridge is not available. Install required dependencies.")
+
         # =====================================
         # リソースマネージャー
         # =====================================
@@ -193,25 +234,27 @@ def main():
         audio_capture = AudioCapture(config.audio, audio_queue, config.audio)
         audio_processing = AudioProcessing(config.audio, audio_queue, processing_queue)
         speech_recognition = SpeechRecognition(
-            config.audio, 
-            processing_queue, 
+            config.audio,
+            processing_queue,
             None,  # 翻訳なし
             config,  # ConfigManagerを渡す
             config.language,
-            debug=debug_mode
+            debug=debug_mode,
+            web_ui=web_ui  # Web UI Bridge
         )
         
         # =====================================
         # システムの起動
         # =====================================
-        system = AudioTranscriptionSystem(
-            audio_capture, 
-            audio_processing, 
+        global _system_instance
+        _system_instance = AudioTranscriptionSystem(
+            audio_capture,
+            audio_processing,
             speech_recognition,
-            resource_manager, 
+            resource_manager,
             debug=debug_mode
         )
-        system.run()
+        _system_instance.run()
         
     except FileNotFoundError as e:
         print(f"\nエラー: {e}")

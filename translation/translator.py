@@ -48,7 +48,7 @@ class Translation:
     ConfigManagerから設定を取得し、LLMで翻訳を実行します。
     """
     
-    def __init__(self, translation_queue, config_manager, lang_config, debug=False, tts=None):
+    def __init__(self, translation_queue, config_manager, lang_config, debug=False, tts=None, web_ui=None):
         """
         Args:
             translation_queue: 翻訳待ちテキストのキュー
@@ -56,11 +56,13 @@ class Translation:
             lang_config: LanguageConfig データクラス
             debug: デバッグモード
             tts: TextToSpeech インスタンス（オプショナル）
+            web_ui: WebUIBridge インスタンス（オプショナル）
         """
         self.translation_queue = translation_queue
         self.lang_config = lang_config
         self.debug = debug
         self.tts = tts  # TTS機能
+        self.web_ui = web_ui  # Web UI Bridge
 
         # ConfigManagerから設定を取得
         if hasattr(config_manager, 'translation'):
@@ -335,8 +337,12 @@ class Translation:
                 # キューから新しいテキストを追加
                 while len(texts_to_translate) < self.batch_size:
                     try:
-                        text = self.translation_queue.get_nowait()
-                        texts_to_translate.append(text)
+                        item = self.translation_queue.get_nowait()
+                        # 辞書形式（{text, pair_id}）または文字列を受け入れる
+                        if isinstance(item, dict):
+                            texts_to_translate.append(item)
+                        else:
+                            texts_to_translate.append({'text': item, 'pair_id': None})
                     except queue.Empty:
                         if self.debug:
                             print("翻訳キューが空です")
@@ -353,14 +359,19 @@ class Translation:
                 translated_texts = []
                 bilingual_texts = []
                 processed_items = [
-                    (text, self.preprocess_text(text)) for text in texts_to_translate
+                    (item, self.preprocess_text(item['text'])) for item in texts_to_translate
                 ]
 
-                for original_text, processed_text in processed_items:
+                for item, processed_text in processed_items:
+                    original_text = item['text']
+                    pair_id = item.get('pair_id')
+
                     translated_text = self.translate_text(processed_text)
 
                     if self.is_valid_translation(translated_text):
-                        print(f"\n翻訳: {translated_text}\n")
+                        # Web UIモードではstdoutに出力しない
+                        if not self.web_ui:
+                            print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
                         bilingual_texts.append(
                             f"原文 ({self.lang_config.source}): {processed_text}\n"
@@ -376,10 +387,14 @@ class Translation:
                             except Exception as e:
                                 if self.debug:
                                     print(f"TTS error: {e}")
+
+                        # Web UIに送信（pair_idも送信）
+                        if self.web_ui:
+                            self.web_ui.send_translated_text(translated_text, processed_text, pair_id)
                     else:
                         if self.debug:
                             print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
-                        self.handle_translation_error(original_text)
+                        self.handle_translation_error(item)
                 
                 # ファイルに記録（バッチ書き込みでI/O効率化）
                 if translated_texts or bilingual_texts:
