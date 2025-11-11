@@ -17,7 +17,6 @@ models:
   translation:
     darwin:  # macOS
       model_path: "mlx-community/gpt-oss-20b-MXFP4-Q4" # MLX対応モデル
-      #model_path: "mlx-community/llm-jp-3-3.7b-instruct"
     default:  # Linux/Windows
       model_path: "openai/gpt-oss-20b" # Hugging Faceリポジトリまたはローカルパス
 
@@ -29,9 +28,8 @@ models:
     # API Server設定 (LM Studio, Ollama, vLLM等のOpenAI互換API)
     # api.enabledがtrueの場合、ローカルモデルロードではなくAPIサーバーを使用
     api:
-      enabled: true  # trueに設定するとAPIサーバーを使用
-      #base_url: "http://localhost:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
-      base_url: "http://192.168.11.18:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
+      enabled: false  # trueに設定するとAPIサーバーを使用
+      base_url: "http://localhost:1234/v1"  # APIサーバーのベースURL (LM Studioデフォルト)
       api_key: ""  # API Key (不要な場合は空文字列)
       model: "local-model"  # 使用するモデル名 (サーバー側で設定したモデル名)
       timeout: 60  # タイムアウト時間（秒）
