@@ -62,7 +62,7 @@ langSwapBtn.addEventListener('click', () => {
     sourceLang.value = headerSourceLang.value;
     targetLang.value = headerTargetLang.value;
 
-    // 実行中の場合はサーバーに通知
+    // 実行中の場合はサーバーに通知し、再起動を促す
     if (isConnected && ws && isRunning) {
         ws.send(JSON.stringify({
             type: 'settings',
@@ -72,6 +72,10 @@ langSwapBtn.addEventListener('click', () => {
                 tts_enabled: ttsEnabled.checked
             }
         }));
+
+        // ユーザーに通知
+        console.log('Language settings changed. Please stop and restart recognition to apply.');
+        // オプション: 視覚的な通知を追加することもできます
     }
 
     // サーバー設定を更新
@@ -476,7 +480,7 @@ headerSourceLang.addEventListener('change', () => {
     // 設定パネルの言語も同期
     sourceLang.value = newLang;
 
-    // 実行中の場合はサーバーに通知
+    // 実行中の場合はサーバーに通知し、再起動を促す
     if (isConnected && ws && isRunning) {
         ws.send(JSON.stringify({
             type: 'settings',
@@ -486,6 +490,7 @@ headerSourceLang.addEventListener('change', () => {
                 tts_enabled: ttsEnabled.checked
             }
         }));
+        console.log('Language settings changed. Please stop and restart recognition to apply.');
     }
 
     // サーバー設定を更新
@@ -499,7 +504,7 @@ headerTargetLang.addEventListener('change', () => {
     // 設定パネルの言語も同期
     targetLang.value = newLang;
 
-    // 実行中の場合はサーバーに通知
+    // 実行中の場合はサーバーに通知し、再起動を促す
     if (isConnected && ws && isRunning) {
         ws.send(JSON.stringify({
             type: 'settings',
@@ -509,6 +514,7 @@ headerTargetLang.addEventListener('change', () => {
                 tts_enabled: ttsEnabled.checked
             }
         }));
+        console.log('Language settings changed. Please stop and restart recognition to apply.');
     }
 
     // サーバー設定を更新

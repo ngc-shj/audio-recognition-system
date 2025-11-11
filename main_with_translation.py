@@ -35,6 +35,9 @@ try:
 except ImportError:
     WEB_UI_AVAILABLE = False
 
+# グローバルシステムインスタンス（Web UIから停止するため）
+_system_instance = None
+
 
 class AudioRecognitionSystem:
     """音声認識＋翻訳システムのメインクラス"""
@@ -336,15 +339,16 @@ def main():
         # =====================================
         # システムの起動
         # =====================================
-        system = AudioRecognitionSystem(
-            audio_capture, 
-            audio_processing, 
+        global _system_instance
+        _system_instance = AudioRecognitionSystem(
+            audio_capture,
+            audio_processing,
             speech_recognition,
-            translation, 
-            resource_manager, 
+            translation,
+            resource_manager,
             debug=debug_mode
         )
-        system.run()
+        _system_instance.run()
         
     except FileNotFoundError as e:
         print(f"\nエラー: {e}")

@@ -148,24 +148,54 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif message_type == "stop":
                 # 音声認識停止
-                if server_state.is_recognition_running and server_state.recognition_system:
-                    print("\nStopping recognition system...")
-                    # is_running Eventをクリアして停止
-                    server_state.recognition_system.is_running.clear()
-                    server_state.is_recognition_running = False
+                print(f"\nStop request received. Running: {server_state.is_recognition_running}, System: {server_state.recognition_system is not None}")
 
-                    await websocket.send_json({
-                        "type": "status",
-                        "message": "Recognition stopped",
-                        "status": "stopped"
-                    })
-                    # 全クライアントに通知
-                    await manager.broadcast({
-                        "type": "status",
-                        "message": "Recognition stopped",
-                        "status": "stopped"
-                    })
+                if server_state.is_recognition_running:
+                    if server_state.recognition_system:
+                        print("Stopping recognition system via is_running.clear()...")
+                        # is_running Eventをクリアして停止
+                        server_state.recognition_system.is_running.clear()
+                        server_state.is_recognition_running = False
+
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Recognition stopped",
+                            "status": "stopped"
+                        })
+                        # 全クライアントに通知
+                        await manager.broadcast({
+                            "type": "status",
+                            "message": "Recognition stopped",
+                            "status": "stopped"
+                        })
+                    else:
+                        # システムインスタンスがまだキャプチャされていない場合
+                        print("Warning: System instance not yet captured. Waiting...")
+                        # 少し待ってから再試行
+                        import asyncio
+                        await asyncio.sleep(0.5)
+                        if server_state.recognition_system:
+                            print("System instance now available. Stopping...")
+                            server_state.recognition_system.is_running.clear()
+                            server_state.is_recognition_running = False
+                            await websocket.send_json({
+                                "type": "status",
+                                "message": "Recognition stopped",
+                                "status": "stopped"
+                            })
+                            await manager.broadcast({
+                                "type": "status",
+                                "message": "Recognition stopped",
+                                "status": "stopped"
+                            })
+                        else:
+                            print("Error: Could not capture system instance")
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": "Could not stop recognition: system not ready"
+                            })
                 else:
+                    print("Recognition is not running")
                     await websocket.send_json({
                         "type": "status",
                         "message": "Recognition not running",
@@ -175,7 +205,26 @@ async def websocket_endpoint(websocket: WebSocket):
             elif message_type == "settings":
                 # 設定変更
                 settings = data.get("settings", {})
+
+                # サーバー設定を更新
+                if "source_lang" in settings:
+                    server_state.config["source_lang"] = settings["source_lang"]
+                if "target_lang" in settings:
+                    server_state.config["target_lang"] = settings["target_lang"]
+                if "tts_enabled" in settings:
+                    server_state.config["tts_enabled"] = settings["tts_enabled"]
+
+                print(f"Settings updated: {server_state.config}")
+
+                # 設定変更確認を返す
                 await websocket.send_json({
+                    "type": "settings_updated",
+                    "settings": settings,
+                    "message": "Settings will be applied on next start"
+                })
+
+                # 全クライアントに設定変更を通知
+                await manager.broadcast({
                     "type": "settings_updated",
                     "settings": settings
                 })
