@@ -23,9 +23,61 @@ const sourceLang = document.getElementById('sourceLang');
 const targetLang = document.getElementById('targetLang');
 const ttsEnabled = document.getElementById('ttsEnabled');
 const translationSettings = document.getElementById('translationSettings');
+const showTimestamp = document.getElementById('showTimestamp');
+const showLanguage = document.getElementById('showLanguage');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const overlay = document.getElementById('overlay');
+const headerSourceLang = document.getElementById('headerSourceLang');
+const headerTargetLang = document.getElementById('headerTargetLang');
+const langSwapBtn = document.getElementById('langSwapBtn');
 
 // ペアリング用のマップ（タイムスタンプでペアを管理）
 let textPairs = new Map();
+
+// 設定パネルの開閉
+function openSettings() {
+    settingsPanel.classList.add('open');
+    overlay.classList.add('active');
+}
+
+function closeSettings() {
+    settingsPanel.classList.remove('open');
+    overlay.classList.remove('active');
+}
+
+settingsBtn.addEventListener('click', openSettings);
+closeSettingsBtn.addEventListener('click', closeSettings);
+overlay.addEventListener('click', closeSettings);
+
+// 言語入れ替えボタン
+langSwapBtn.addEventListener('click', () => {
+    // 言語を入れ替え
+    const tempSource = headerSourceLang.value;
+    headerSourceLang.value = headerTargetLang.value;
+    headerTargetLang.value = tempSource;
+
+    // 設定パネルの言語も同期
+    sourceLang.value = headerSourceLang.value;
+    targetLang.value = headerTargetLang.value;
+
+    // 実行中の場合はサーバーに通知
+    if (isConnected && ws && isRunning) {
+        ws.send(JSON.stringify({
+            type: 'settings',
+            settings: {
+                source_lang: headerSourceLang.value,
+                target_lang: headerTargetLang.value,
+                tts_enabled: ttsEnabled.checked
+            }
+        }));
+    }
+
+    // サーバー設定を更新
+    serverConfig.source_lang = headerSourceLang.value;
+    serverConfig.target_lang = headerTargetLang.value;
+});
 
 // WebSocket接続を確立
 function connectWebSocket() {
@@ -226,21 +278,35 @@ function updatePairDisplay(pair) {
     let html = `
         <button class="play-btn" onclick="playText('${escapeHtml(playButtonText || '')}', '${playButtonLang}')">▶</button>
         <div class="text-pair">
-            <div class="timestamp">${timeStr}${pair.language ? ` [${pair.language}]` : ''}</div>
     `;
 
-    // 翻訳モード：原語（小さく薄く）→ 翻訳語（大きくメイン）
+    // タイムスタンプと言語コードの表示制御
+    const displayTimestamp = showTimestamp.checked;
+    const displayLanguage = showLanguage.checked;
+
+    let prefix = '';
+    if (displayTimestamp) {
+        prefix += timeStr;
+    }
+    if (displayLanguage && pair.language) {
+        prefix += ` [${pair.language}]`;
+    }
+    if (prefix) {
+        prefix = `<span class="timestamp">${prefix}</span> `;
+    }
+
+    // 翻訳モード：時刻+原語（小さく薄く）→ 翻訳語（大きくメイン）
     if (isTranslationMode) {
         if (pair.recognized) {
-            html += `<div class="original-text">${escapeHtml(pair.recognized)}</div>`;
+            html += `<div class="original-text">${prefix}${escapeHtml(pair.recognized)}</div>`;
         }
         if (pair.translated) {
             html += `<div class="translated-text">${escapeHtml(pair.translated)}</div>`;
         }
     } else {
-        // Transcriptモード：認識テキストのみ（大きく）
+        // Transcriptモード：時刻+認識テキスト（大きく）
         if (pair.recognized) {
-            html += `<div class="original-text">${escapeHtml(pair.recognized)}</div>`;
+            html += `<div class="original-text">${prefix}${escapeHtml(pair.recognized)}</div>`;
         }
     }
 
@@ -347,21 +413,106 @@ modeSelect.addEventListener('change', () => {
 });
 
 // 設定変更時の処理
-[sourceLang, targetLang, ttsEnabled].forEach(element => {
-    element.addEventListener('change', () => {
-        if (!isConnected || !ws || !isRunning) return;
+sourceLang.addEventListener('change', () => {
+    // ヘッダーの言語選択も同期
+    headerSourceLang.value = sourceLang.value;
 
-        const settings = {
+    if (!isConnected || !ws || !isRunning) return;
+
+    ws.send(JSON.stringify({
+        type: 'settings',
+        settings: {
             source_lang: sourceLang.value,
             target_lang: targetLang.value,
             tts_enabled: ttsEnabled.checked
-        };
+        }
+    }));
+});
 
+targetLang.addEventListener('change', () => {
+    // ヘッダーの言語選択も同期
+    headerTargetLang.value = targetLang.value;
+
+    if (!isConnected || !ws || !isRunning) return;
+
+    ws.send(JSON.stringify({
+        type: 'settings',
+        settings: {
+            source_lang: sourceLang.value,
+            target_lang: targetLang.value,
+            tts_enabled: ttsEnabled.checked
+        }
+    }));
+});
+
+ttsEnabled.addEventListener('change', () => {
+    if (!isConnected || !ws || !isRunning) return;
+
+    ws.send(JSON.stringify({
+        type: 'settings',
+        settings: {
+            source_lang: sourceLang.value,
+            target_lang: targetLang.value,
+            tts_enabled: ttsEnabled.checked
+        }
+    }));
+});
+
+// 表示設定変更時の処理（既存のペアを再描画）
+[showTimestamp, showLanguage].forEach(element => {
+    element.addEventListener('change', () => {
+        // 既存のペアを再描画
+        textPairs.forEach(pair => {
+            updatePairDisplay(pair);
+        });
+    });
+});
+
+// ヘッダー言語切り替え（リアルタイム変更）
+headerSourceLang.addEventListener('change', () => {
+    const newLang = headerSourceLang.value;
+    console.log('Header source language changed to:', newLang);
+
+    // 設定パネルの言語も同期
+    sourceLang.value = newLang;
+
+    // 実行中の場合はサーバーに通知
+    if (isConnected && ws && isRunning) {
         ws.send(JSON.stringify({
             type: 'settings',
-            settings: settings
+            settings: {
+                source_lang: newLang,
+                target_lang: targetLang.value,
+                tts_enabled: ttsEnabled.checked
+            }
         }));
-    });
+    }
+
+    // サーバー設定を更新
+    serverConfig.source_lang = newLang;
+});
+
+headerTargetLang.addEventListener('change', () => {
+    const newLang = headerTargetLang.value;
+    console.log('Header target language changed to:', newLang);
+
+    // 設定パネルの言語も同期
+    targetLang.value = newLang;
+
+    // 実行中の場合はサーバーに通知
+    if (isConnected && ws && isRunning) {
+        ws.send(JSON.stringify({
+            type: 'settings',
+            settings: {
+                source_lang: sourceLang.value,
+                target_lang: newLang,
+                tts_enabled: ttsEnabled.checked
+            }
+        }));
+    }
+
+    // サーバー設定を更新
+    serverConfig.target_lang = newLang;
 });
 
 // サーバー設定を取得してUIに反映
@@ -378,9 +529,11 @@ async function loadServerConfig() {
             }
             if (sourceLang && serverConfig.source_lang) {
                 sourceLang.value = serverConfig.source_lang;
+                headerSourceLang.value = serverConfig.source_lang;
             }
             if (targetLang && serverConfig.target_lang) {
                 targetLang.value = serverConfig.target_lang;
+                headerTargetLang.value = serverConfig.target_lang;
             }
 
             // モードに応じてUIを更新
