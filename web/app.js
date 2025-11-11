@@ -13,7 +13,6 @@ let serverConfig = {
 // DOM elements
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
-const statsText = document.getElementById('statsText');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const clearBtn = document.getElementById('clearBtn');
@@ -193,21 +192,18 @@ function handleMessage(data) {
 
 // ステータスメッセージの処理
 function handleStatusMessage(data) {
-    const { message, status } = data;
-    console.log('Status:', status, message);
+    const { status } = data;
 
     if (status === 'running') {
         isRunning = true;
         updateStatus('running', 'Recognition Running');
         startBtn.disabled = true;
         stopBtn.disabled = false;
-        statsText.textContent = 'Recognition: Active';
     } else if (status === 'stopped') {
         isRunning = false;
         updateStatus('connected', 'Connected');
         startBtn.disabled = false;
         stopBtn.disabled = true;
-        statsText.textContent = 'Recognition: Idle';
     }
 }
 
@@ -384,8 +380,6 @@ startBtn.addEventListener('click', () => {
         tts_enabled: ttsEnabled.checked
     };
 
-    console.log('Starting recognition with settings:', settings);
-
     ws.send(JSON.stringify({
         type: 'start',
         settings: settings
@@ -399,8 +393,6 @@ startBtn.addEventListener('click', () => {
 // 停止ボタン
 stopBtn.addEventListener('click', () => {
     if (!isConnected || !ws) return;
-
-    console.log('Stopping recognition');
 
     ws.send(JSON.stringify({
         type: 'stop'
@@ -592,7 +584,6 @@ async function checkRecognitionStatus() {
                 updateStatus('running', 'Recognition Running');
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
-                statsText.textContent = 'Recognition: Active';
             }
         }
     } catch (error) {

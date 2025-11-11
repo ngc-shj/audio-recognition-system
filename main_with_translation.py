@@ -300,7 +300,9 @@ def main():
                     enabled=True
                 )
                 print(f"\nWeb UI連携を有効化しました: {args.web_ui_url}")
-                web_ui.send_status("stopped", "System initialized")
+                # Note: Web UIサーバー側で"running"ステータスを送信するため、
+                # ここでは初期ステータスを送信しない
+                # web_ui.send_status("stopped", "System initialized")
             except Exception as e:
                 print(f"Warning: Web UI Bridge initialization failed: {e}")
                 web_ui = None

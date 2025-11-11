@@ -94,7 +94,9 @@ class SpeechRecognition:
 
                 current_time = time.time()
                 if text and (text != last_text or current_time - last_text_time > 5):
-                    self.print_with_strictly_controlled_linebreaks(text)
+                    # Web UIモードではstdoutに出力しない
+                    if not self.web_ui:
+                        self.print_with_strictly_controlled_linebreaks(text)
                     last_text = text
                     last_text_time = current_time
 

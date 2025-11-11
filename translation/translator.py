@@ -369,7 +369,9 @@ class Translation:
                     translated_text = self.translate_text(processed_text)
 
                     if self.is_valid_translation(translated_text):
-                        print(f"\n翻訳: {translated_text}\n")
+                        # Web UIモードではstdoutに出力しない
+                        if not self.web_ui:
+                            print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
                         bilingual_texts.append(
                             f"原文 ({self.lang_config.source}): {processed_text}\n"

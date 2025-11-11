@@ -21,6 +21,16 @@ An audio recognition and real-time translation system built to efficiently trans
       - [Transcription Only](#transcription-only)
       - [Transcription with Translation](#transcription-with-translation)
     - [Command-Line Options](#command-line-options)
+  - [Web UI](#web-ui)
+    - [Web UI Installation](#web-ui-installation)
+    - [Starting the Web UI Server](#starting-the-web-ui-server)
+    - [Web UI Features](#web-ui-features)
+    - [Web UI Command-Line Options](#web-ui-command-line-options)
+  - [Text-to-Speech (TTS)](#text-to-speech-tts)
+    - [TTS Installation](#tts-installation)
+    - [TTS Configuration](#tts-configuration)
+    - [Available Voices](#available-voices)
+    - [Using TTS](#using-tts)
   - [File Structure](#file-structure)
   - [Troubleshooting](#troubleshooting)
     - [Common Issues](#common-issues)
@@ -38,6 +48,8 @@ The Audio Recognition System enables audio transcription and, optionally, transl
 
 - **Real-time Audio Transcription**: Uses Whisper models for accurate speech recognition
 - **Multi-language Translation**: Supports translation between multiple languages using LLM models
+- **Web UI**: Modern browser-based interface with real-time display and controls
+- **Text-to-Speech**: Optional TTS functionality to read translated text aloud using edge-tts
 - **Flexible Configuration**: YAML-based configuration with profile support (development, production, testing)
 - **Platform Support**: Optimized for macOS (with MLX), Linux, and Windows
 - **Audio Processing**: Built-in noise reduction and voice activity detection
@@ -296,6 +308,164 @@ python main_with_translation.py \
 - Spanish: `es`
 - And more (see Whisper documentation)
 
+## Web UI
+
+The system includes a modern web-based user interface for real-time audio recognition and translation. The Web UI provides an intuitive interface with visual feedback, paired text display, and easy control over the recognition system.
+
+### Web UI Installation
+
+In addition to the base requirements, the Web UI requires:
+
+```bash
+pip install fastapi uvicorn websockets
+```
+
+These dependencies allow the system to run a local web server with WebSocket support for real-time updates.
+
+### Starting the Web UI Server
+
+**Basic usage** (server only, start recognition from browser):
+```bash
+python web_server.py
+```
+
+Then open your browser and navigate to: `http://localhost:8000`
+
+**With automatic recognition start:**
+```bash
+# Transcription with translation mode
+python web_server.py --start-recognition --mode translation
+
+# Transcription only mode
+python web_server.py --start-recognition --mode transcript
+```
+
+**With custom settings:**
+```bash
+python web_server.py \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --start-recognition \
+  --mode translation \
+  --source-lang en \
+  --target-lang ja \
+  --config ./config.yaml
+```
+
+### Web UI Features
+
+The Web UI provides:
+
+- **Real-time Display**: Recognized and translated text appears instantly in the browser
+- **Paired Text View**: Recognition and translation are paired together with visual indicators
+- **Start/Stop Controls**: Easy buttons to control the recognition system
+- **Mode Selection**: Choose between translation mode (recognition + translation) or transcript-only mode
+- **Language Configuration**: Select source and target languages from the UI
+- **Status Indicators**: Visual feedback showing connection status and system state
+- **Auto-scrolling**: Automatically scrolls to show the latest results
+- **WebSocket Communication**: Efficient real-time updates without page reloads
+
+### Web UI Command-Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--host` | Server host address | `0.0.0.0` |
+| `--port` | Server port number | `8000` |
+| `--start-recognition` | Start recognition system automatically | `false` |
+| `--mode` | Mode: `translation` or `transcript` | `translation` |
+| `--config` | Path to config file | `config.yaml` |
+| `--source-lang` | Input language code | From config |
+| `--target-lang` | Output language code | From config |
+
+**Examples:**
+
+Start server only (control from browser):
+```bash
+python web_server.py
+```
+
+Start with automatic recognition in translation mode:
+```bash
+python web_server.py --start-recognition --mode translation --source-lang en --target-lang ja
+```
+
+Start with automatic recognition in transcript-only mode:
+```bash
+python web_server.py --start-recognition --mode transcript --source-lang en
+```
+
+Run on a different port:
+```bash
+python web_server.py --host localhost --port 3000
+```
+
+**Note**: When using Web UI mode, recognized text and translations are sent only to the browser interface and are not printed to stdout. All results are still logged to files in the output directory.
+
+## Text-to-Speech (TTS)
+
+The system includes optional Text-to-Speech functionality to audibly read translated text in real-time. The TTS feature uses Microsoft Edge Neural TTS (edge-tts) for high-quality, natural-sounding voice output.
+
+### TTS Installation
+
+Install the required TTS dependency:
+
+```bash
+pip install edge-tts
+```
+
+For audio playback, ensure you have one of the following:
+- **macOS**: `afplay` (built-in)
+- **Linux/Windows**: `mpv` or `ffmpeg`
+
+### TTS Configuration
+
+Configure TTS in [config.yaml](config.yaml):
+
+```yaml
+tts:
+  enabled: true  # Enable/disable TTS
+  engine: "edge-tts"  # TTS engine (currently only edge-tts is supported)
+  voice: "ja-JP-NanamiNeural"  # Voice ID for the target language
+  rate: "+30%"  # Speech rate (-50% to +100%)
+  volume: "+0%"  # Volume (-50% to +100%)
+  pitch: "+0Hz"  # Pitch adjustment (-50Hz to +50Hz)
+  output_device: "MacBook Proのスピーカー"  # Output device name (optional)
+```
+
+### Available Voices
+
+The system automatically selects appropriate voices based on the target language:
+
+| Language | Voice ID |
+|----------|----------|
+| Japanese (ja) | ja-JP-NanamiNeural |
+| English (en) | en-US-AriaNeural |
+| Spanish (es) | es-ES-ElviraNeural |
+| French (fr) | fr-FR-DeniseNeural |
+| German (de) | de-DE-KatjaNeural |
+| Chinese (zh) | zh-CN-XiaoxiaoNeural |
+| Korean (ko) | ko-KR-SunHiNeural |
+| Italian (it) | it-IT-ElsaNeural |
+| Portuguese (pt) | pt-BR-FranciscaNeural |
+| Russian (ru) | ru-RU-SvetlanaNeural |
+
+You can override the default voice by specifying a different `voice` in the config file. See the [Microsoft Edge TTS voice list](https://speech.microsoft.com/portal/voicegallery) for all available voices.
+
+### Using TTS
+
+TTS works automatically when enabled in the configuration:
+
+1. **With Translation Mode**: Translated text will be read aloud automatically
+   ```bash
+   python main_with_translation.py --source-lang en --target-lang ja
+   ```
+
+2. **Enable/Disable via Config**: Edit `config.yaml` and set `tts.enabled` to `true` or `false`
+
+3. **Web UI Integration**: The Web UI includes a "Enable Text-to-Speech" checkbox in the settings panel
+
+**Note**: TTS only works in translation mode and reads the translated text, not the original recognized text.
+
 ## File Structure
 
 ```
@@ -304,7 +474,14 @@ audio-recognition-system/
 ├── config_manager.py                # Configuration management
 ├── main_transcription_only.py       # Transcription-only script
 ├── main_with_translation.py         # Transcription + translation script
+├── web_server.py                    # Web UI server (FastAPI + WebSocket)
+├── web_ui_bridge.py                 # Bridge for sending updates to Web UI
 ├── list_audio_devices.py            # Device listing utility
+│
+├── web/                             # Web UI files
+│   ├── index.html                   # Main Web UI page
+│   ├── app.js                       # Client-side JavaScript
+│   └── styles.css                   # UI styles
 │
 ├── audio/
 │   ├── capture.py                   # Audio capture module
@@ -315,6 +492,9 @@ audio-recognition-system/
 │
 ├── translation/
 │   └── translator.py                # Translation module (LLM-based)
+│
+├── tts/                             # Text-to-Speech module
+│   └── text_to_speech.py            # TTS using edge-tts (Microsoft Edge Neural TTS)
 │
 ├── utils/
 │   ├── resource_manager.py          # System resource management

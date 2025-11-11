@@ -151,11 +151,13 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"\nStop request received. Running: {server_state.is_recognition_running}, System: {server_state.recognition_system is not None}")
 
                 if server_state.is_recognition_running:
+                    # すぐにフラグをクリアして、UIが正しい状態を表示できるようにする
+                    server_state.is_recognition_running = False
+
                     if server_state.recognition_system:
                         print("Stopping recognition system via is_running.clear()...")
                         # is_running Eventをクリアして停止
                         server_state.recognition_system.is_running.clear()
-                        server_state.is_recognition_running = False
 
                         await websocket.send_json({
                             "type": "status",
@@ -177,7 +179,6 @@ async def websocket_endpoint(websocket: WebSocket):
                         if server_state.recognition_system:
                             print("System instance now available. Stopping...")
                             server_state.recognition_system.is_running.clear()
-                            server_state.is_recognition_running = False
                             await websocket.send_json({
                                 "type": "status",
                                 "message": "Recognition stopped",
@@ -194,6 +195,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "type": "error",
                                 "message": "Could not stop recognition: system not ready"
                             })
+                            # エラーの場合でもフラグを再設定（リトライできるように）
+                            server_state.is_recognition_running = True
                 else:
                     print("Recognition is not running")
                     await websocket.send_json({
