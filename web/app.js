@@ -356,11 +356,61 @@ function escapeHtml(text) {
     return div.innerHTML.replace(/'/g, '&apos;');
 }
 
-// テキスト再生（将来的に実装）
+// TTS機能（Web Speech API使用）
 function playText(text, language) {
-    console.log(`Playing text: "${text}" in language: ${language}`);
-    // TODO: Web Speech API または TTS API を使用して音声再生
-    alert(`Text: ${text}\nLanguage: ${language}\n\n(Audio playback not yet implemented)`);
+    if (!text) {
+        console.warn('No text to play');
+        return;
+    }
+
+    // Web Speech API対応確認
+    if (!('speechSynthesis' in window)) {
+        console.error('Web Speech API is not supported in this browser');
+        showToast('Text-to-Speech is not supported in this browser', 'warning', 3000);
+        return;
+    }
+
+    // 言語コードをブラウザのロケールにマッピング
+    const langMap = {
+        'ja': 'ja-JP',
+        'en': 'en-US',
+        'es': 'es-ES',
+        'fr': 'fr-FR',
+        'de': 'de-DE',
+        'zh': 'zh-CN',
+        'ko': 'ko-KR'
+    };
+
+    // 発話オブジェクトを作成
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langMap[language] || 'en-US';
+    utterance.rate = 1.0;  // 話速（0.1-10の範囲、1.0が標準）
+    utterance.pitch = 1.0; // 音高（0-2の範囲、1.0が標準）
+    utterance.volume = 1.0; // 音量（0-1の範囲、1.0が最大）
+
+    // イベントハンドラ
+    utterance.onstart = () => {
+        console.log('TTS started:', language, text.substring(0, 50) + '...');
+    };
+
+    utterance.onend = () => {
+        console.log('TTS finished');
+    };
+
+    utterance.onerror = (event) => {
+        console.error('TTS error:', event.error);
+        if (event.error === 'not-allowed') {
+            showToast('Please allow audio playback in your browser', 'warning', 3000);
+        } else {
+            showToast(`TTS error: ${event.error}`, 'warning', 3000);
+        }
+    };
+
+    // 既存の発話をキャンセル（新しい音声のみ再生）
+    speechSynthesis.cancel();
+
+    // 音声合成を実行
+    speechSynthesis.speak(utterance);
 }
 
 // ステータス更新
