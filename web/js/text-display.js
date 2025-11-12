@@ -86,15 +86,6 @@ export function updatePairDisplay(pair) {
         entryElement.className = isTranslationMode ? 'text-entry' : 'text-entry transcript-only';
     }
 
-    // Format timestamp
-    const time = new Date(pair.timestamp || Date.now());
-    const timeStr = time.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-
     // Play button (translated text in translation mode, recognized text otherwise)
     const playButtonText = isTranslationMode && pair.translated ? pair.translated : pair.recognized;
     const playButtonLang = isTranslationMode && pair.translated ? serverConfig.target_lang || 'ja' : pair.language || 'en';
@@ -105,46 +96,24 @@ export function updatePairDisplay(pair) {
         <div class="text-pair">
     `;
 
-    // Timestamp and language code display control
-    const displayTimestamp = DOM.showTimestamp.checked;
-    const displayLanguage = DOM.showLanguage.checked;
+    // Check if we should show source language (for toggle button)
+    const showSourceLangCheckbox = document.getElementById('showSourceLang');
+    const displaySource = showSourceLangCheckbox ? showSourceLangCheckbox.checked : true;
 
-    // Translation mode: time + source (small, light) → translation (large, main)
+    // Translation mode: source (small, light) → translation (large, main)
     if (isTranslationMode) {
-        // Show original text only if displayLanguage is enabled
-        if (pair.recognized && displayLanguage) {
-            let prefix = '';
-            if (displayTimestamp) {
-                prefix += timeStr;
-            }
-            if (pair.language) {
-                prefix += ` [${pair.language}]`;
-            }
-            if (prefix) {
-                prefix = `<span class="timestamp">${prefix}</span> `;
-            }
-            html += `<div class="original-text">${prefix}${escapeHtml(pair.recognized)}</div>`;
+        // Show original text only if toggle is enabled
+        if (pair.recognized && displaySource) {
+            html += `<div class="original-text">${escapeHtml(pair.recognized)}</div>`;
         }
         // Always show translated text
         if (pair.translated) {
-            // Show timestamp only if original text is hidden
-            const translatedPrefix = (displayTimestamp && !displayLanguage) ? `<span class="timestamp">${timeStr}</span> ` : '';
-            html += `<div class="translated-text">${translatedPrefix}${escapeHtml(pair.translated)}</div>`;
+            html += `<div class="translated-text">${escapeHtml(pair.translated)}</div>`;
         }
     } else {
-        // Transcript mode: time + recognized text (large)
+        // Transcript mode: just recognized text (large)
         if (pair.recognized) {
-            let prefix = '';
-            if (displayTimestamp) {
-                prefix += timeStr;
-            }
-            if (displayLanguage && pair.language) {
-                prefix += ` [${pair.language}]`;
-            }
-            if (prefix) {
-                prefix = `<span class="timestamp">${prefix}</span> `;
-            }
-            html += `<div class="original-text">${prefix}${escapeHtml(pair.recognized)}</div>`;
+            html += `<div class="original-text">${escapeHtml(pair.recognized)}</div>`;
         }
     }
 

@@ -74,10 +74,6 @@ export const DOM = {
     ttsEnabled: document.getElementById('ttsEnabled'),
     translationSettings: document.getElementById('translationSettings'),
 
-    // Display options
-    showTimestamp: document.getElementById('showTimestamp'),
-    showLanguage: document.getElementById('showLanguage'),
-
     // Settings panel
     settingsBtn: document.getElementById('settingsBtn'),
     settingsPanel: document.getElementById('settingsPanel'),
