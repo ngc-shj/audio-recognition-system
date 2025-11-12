@@ -278,12 +278,12 @@ class TextToSpeech:
                 # 一時ファイルを削除
                 try:
                     os.unlink(mp3_path)
-                except:
-                    pass
+                except (OSError, FileNotFoundError) as e:
+                    logger.error(f"MP3一時ファイル削除エラー: {e}")
                 try:
                     os.unlink(wav_path)
-                except:
-                    pass
+                except (OSError, FileNotFoundError) as e:
+                    logger.error(f"WAV一時ファイル削除エラー: {e}")
 
         except Exception as e:
             if self.debug:
@@ -326,8 +326,8 @@ class TextToSpeech:
                 # 一時ファイルを削除
                 try:
                     os.unlink(temp_file_path)
-                except:
-                    pass
+                except (OSError, FileNotFoundError) as e:
+                    logger.error(f"一時ファイル削除エラー: {e}")
 
         except Exception as e:
             if self.debug:

@@ -39,7 +39,10 @@ except ImportError:
     WEB_UI_AVAILABLE = False
 
 # グローバルシステムインスタンス（Web UIから停止するため）
+# スレッドセーフなアクセスを保証するためのロック
+import threading
 _system_instance = None
+_system_instance_lock = threading.Lock()
 
 # Setup logger
 logger = setup_logger(__name__)
@@ -353,14 +356,15 @@ def main():
         # システムの起動
         # =====================================
         global _system_instance
-        _system_instance = AudioRecognitionSystem(
-            audio_capture,
-            audio_processing,
-            speech_recognition,
-            translation,
-            resource_manager,
-            debug=debug_mode
-        )
+        with _system_instance_lock:
+            _system_instance = AudioRecognitionSystem(
+                audio_capture,
+                audio_processing,
+                speech_recognition,
+                translation,
+                resource_manager,
+                debug=debug_mode
+            )
         _system_instance.run()
         
     except FileNotFoundError as e:
