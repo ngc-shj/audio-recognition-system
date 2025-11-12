@@ -6,6 +6,9 @@ Audio Capture Module (Clean Config Compatible)
 import pyaudio
 import numpy as np
 import time
+import queue
+from typing import Optional, Any
+from threading import Event
 
 # Logging
 from utils.logger import setup_logger
@@ -21,7 +24,12 @@ class AudioCapture:
     AudioConfigデータクラスを使用してPyAudioストリームを管理します。
     """
     
-    def __init__(self, audio_config, audio_queue, config_manager=None):
+    def __init__(
+        self,
+        audio_config: Any,
+        audio_queue: queue.Queue,
+        config_manager: Optional[Any] = None
+    ) -> None:
         """
         Args:
             audio_config: AudioConfig データクラス
@@ -51,7 +59,7 @@ class AudioCapture:
         self.audio_queue.put(audio_data)
         return (in_data, pyaudio.paContinue)
 
-    def capture_thread(self, is_running):
+    def capture_thread(self, is_running: Event) -> None:
         """音声キャプチャスレッドのメイン処理"""
         audio = None
         stream = None
@@ -100,7 +108,7 @@ class AudioCapture:
             logger.info("音声キャプチャスレッド終了")
 
     @staticmethod
-    def get_input_device_index(input_device):
+    def get_input_device_index(input_device: Optional[int]) -> Optional[int]:
         """
         入力デバイスのインデックスを取得
         

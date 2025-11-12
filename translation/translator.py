@@ -12,7 +12,8 @@ import time
 import gc
 import torch
 from collections import deque
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple, Any, Union
+from threading import Event
 
 # Logging
 from utils.logger import setup_logger
@@ -54,7 +55,15 @@ class Translation:
     ConfigManagerから設定を取得し、LLMで翻訳を実行します。
     """
     
-    def __init__(self, translation_queue, config_manager, lang_config, debug=False, tts=None, web_ui=None):
+    def __init__(
+        self,
+        translation_queue: queue.Queue,
+        config_manager: Any,
+        lang_config: Any,
+        debug: bool = False,
+        tts: Optional[Any] = None,
+        web_ui: Optional[Any] = None
+    ) -> None:
         """
         Args:
             translation_queue: 翻訳待ちテキストのキュー
@@ -217,7 +226,7 @@ class Translation:
         logger.info(f"翻訳ログ: {self.log_file_path}")
         logger.info(f"対訳ログ: {self.bilingual_log_file_path}")
 
-    def load_model(self):
+    def load_model(self) -> None:
         """翻訳モデル/APIクライアントのロード"""
         try:
             # 既存モデルのクリーンアップ（メモリ解放を保証）
@@ -336,7 +345,7 @@ class Translation:
             logger.info(f"モデルの再ロード中にエラーが発生しました: {e}")
             raise
 
-    def translation_thread(self, is_running):
+    def translation_thread(self, is_running: Event) -> None:
         """翻訳スレッドのメイン処理"""
         logger.info(f"翻訳スレッド開始 ({self.lang_config.source} → {self.lang_config.target})")
         
@@ -441,7 +450,7 @@ class Translation:
         
         logger.info("翻訳スレッド終了")
 
-    def translate_text(self, text):
+    def translate_text(self, text: str) -> Optional[str]:
         """テキストを翻訳"""
         # コンテキストの構築
         context_str = ""
