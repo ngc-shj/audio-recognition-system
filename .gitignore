@@ -45,3 +45,6 @@ data/
 **/.DS_Store
 
 logs/
+
+# User-specific configuration
+config.yaml

@@ -516,8 +516,171 @@
                 </div>
             </div>
 
+            <!-- Advanced Settings -->
+            <div class="settings-group" style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
+                <label style="font-size: 1.1rem; color: #667eea;">🔧 Advanced Settings</label>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Changes require stopping and restarting recognition</p>
+            </div>
+
+            <!-- Model Settings -->
+            <div class="settings-section">
+                <div class="settings-group">
+                    <label for="asrModelPath">ASR Model Path (Whisper):</label>
+                    <input type="text" id="asrModelPath" value="mlx-community/whisper-large-v3-turbo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9rem;">
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">HuggingFace model ID or local path</p>
+                </div>
+
+                <div class="settings-group">
+                    <label for="asrModelSize">ASR Model Size:</label>
+                    <select id="asrModelSize" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="tiny">tiny (fastest, lower accuracy)</option>
+                        <option value="base">base (fast)</option>
+                        <option value="small">small (balanced)</option>
+                        <option value="medium">medium (good quality)</option>
+                        <option value="large">large (best quality)</option>
+                        <option value="large-v3-turbo" selected>large-v3-turbo (recommended)</option>
+                    </select>
+                </div>
+
+                <div class="settings-group" style="margin-top: 20px;">
+                    <label style="font-size: 1rem; color: #667eea;">Translation Model Configuration</label>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Choose either local model or external API server</p>
+                </div>
+
+                <div class="settings-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="apiEnabled">
+                        <label for="apiEnabled">Use External API Server (LM Studio/Ollama/vLLM)</label>
+                    </div>
+                </div>
+
+                <div id="localModelSettings" class="settings-section">
+                    <div class="settings-group">
+                        <label for="translationModelPath">Local Translation Model Path:</label>
+                        <input type="text" id="translationModelPath" value="mlx-community/gpt-oss-20b-MXFP4-Q4" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9rem;">
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">HuggingFace model ID or local path (macOS: MLX format)</p>
+                    </div>
+                </div>
+
+                <div id="apiServerSettings" class="settings-section hidden">
+                    <div class="settings-group">
+                        <label for="apiBaseUrl">API Base URL:</label>
+                        <input type="text" id="apiBaseUrl" value="http://localhost:1234/v1" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">OpenAI-compatible API endpoint</p>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="apiModel">Model Name:</label>
+                        <input type="text" id="apiModel" value="local-model" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Model name configured in API server</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Device Settings -->
+            <div class="settings-section">
+                <div class="settings-group">
+                    <label for="inputDevice">Input Device (Microphone):</label>
+                    <select id="inputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">Default (Auto-detect)</option>
+                    </select>
+                    <button id="refreshInputDevices" style="margin-top: 8px; padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                        🔄 Refresh Devices
+                    </button>
+                </div>
+
+                <div class="settings-group">
+                    <label for="outputDevice">Output Device (TTS Speaker):</label>
+                    <select id="outputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">Default (System Speaker)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Audio Detection Settings -->
+            <div class="settings-section">
+                <div class="settings-group">
+                    <label for="silenceThreshold">Silence Threshold:</label>
+                    <input type="range" id="silenceThreshold" min="0.001" max="0.05" step="0.001" value="0.005" style="width: 100%;">
+                    <span id="silenceThresholdValue" style="font-size: 0.9rem; color: #666;">0.005</span>
+                </div>
+
+                <div class="settings-group">
+                    <label for="mediumPause">Medium Pause (sentence break):</label>
+                    <input type="range" id="mediumPause" min="0.3" max="2.0" step="0.1" value="0.8" style="width: 100%;">
+                    <span id="mediumPauseValue" style="font-size: 0.9rem; color: #666;">0.8s</span>
+                </div>
+
+                <div class="settings-group">
+                    <label for="longPause">Long Pause (end of speech):</label>
+                    <input type="range" id="longPause" min="0.5" max="3.0" step="0.1" value="1.5" style="width: 100%;">
+                    <span id="longPauseValue" style="font-size: 0.9rem; color: #666;">1.5s</span>
+                </div>
+            </div>
+
+            <!-- Translation Parameters -->
+            <div class="settings-section">
+                <div class="settings-group">
+                    <label for="temperature">Translation Temperature (creativity):</label>
+                    <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.8" style="width: 100%;">
+                    <span id="temperatureValue" style="font-size: 0.9rem; color: #666;">0.8</span>
+                </div>
+
+                <div class="settings-group">
+                    <label for="contextWindowSize">Context Window Size:</label>
+                    <input type="range" id="contextWindowSize" min="1" max="20" step="1" value="8" style="width: 100%;">
+                    <span id="contextWindowSizeValue" style="font-size: 0.9rem; color: #666;">8 sentences</span>
+                </div>
+            </div>
+
+            <!-- TTS Settings -->
+            <div id="ttsAdvancedSettings" class="settings-section">
+                <div class="settings-group">
+                    <label for="ttsRate">TTS Speech Rate:</label>
+                    <select id="ttsRate">
+                        <option value="-50%">-50% (Very Slow)</option>
+                        <option value="-25%">-25% (Slow)</option>
+                        <option value="+0%">+0% (Normal)</option>
+                        <option value="+20%">+20% (Faster)</option>
+                        <option value="+30%" selected>+30% (Fast)</option>
+                        <option value="+50%">+50% (Very Fast)</option>
+                        <option value="+75%">+75% (Ultra Fast)</option>
+                        <option value="+100%">+100% (Maximum)</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label for="ttsVolume">TTS Volume:</label>
+                    <select id="ttsVolume">
+                        <option value="-50%">-50% (Very Quiet)</option>
+                        <option value="-25%">-25% (Quiet)</option>
+                        <option value="+0%" selected>+0% (Normal)</option>
+                        <option value="+25%">+25% (Louder)</option>
+                        <option value="+50%">+50% (Very Loud)</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label for="ttsPitch">TTS Pitch:</label>
+                    <select id="ttsPitch">
+                        <option value="-50Hz">-50Hz (Very Low)</option>
+                        <option value="-25Hz">-25Hz (Low)</option>
+                        <option value="+0Hz" selected>+0Hz (Normal)</option>
+                        <option value="+25Hz">+25Hz (High)</option>
+                        <option value="+50Hz">+50Hz (Very High)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Save Settings Button -->
+            <div class="settings-group" style="margin-top: 20px;">
+                <button id="saveAdvancedSettings" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                    💾 Save Advanced Settings
+                </button>
+            </div>
+
             <!-- Display Settings -->
-            <div class="settings-group">
+            <div class="settings-group" style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
                 <label>Display Options:</label>
                 <div class="checkbox-wrapper">
                     <input type="checkbox" id="showTimestamp" checked>

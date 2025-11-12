@@ -10,6 +10,7 @@ import os
 import yaml
 import pyaudio
 import numpy as np
+import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
@@ -214,20 +215,43 @@ class ConfigManager:
     
     @staticmethod
     def _find_default_config() -> str:
-        """デフォルトの設定ファイルを探す"""
+        """デフォルトの設定ファイルを探す
+
+        config.yamlが存在しない場合、config.yaml.exampleから自動的にコピーします。
+        """
         possible_paths = [
             'config.yaml',
             'config/config.yaml',
             'configs/config.yaml',
             os.path.join(os.path.dirname(__file__), 'config.yaml'),
         ]
-        
+
+        # まずconfig.yamlを探す
         for path in possible_paths:
             if os.path.exists(path):
                 return path
-        
+
+        # config.yamlが見つからない場合、config.yaml.exampleからコピー
+        example_paths = [
+            'config.yaml.example',
+            'config/config.yaml.example',
+            'configs/config.yaml.example',
+            os.path.join(os.path.dirname(__file__), 'config.yaml.example'),
+        ]
+
+        for example_path in example_paths:
+            if os.path.exists(example_path):
+                # config.yamlと同じディレクトリにコピー
+                target_path = example_path.replace('.example', '')
+                try:
+                    shutil.copy2(example_path, target_path)
+                    print(f"初回起動: {example_path} を {target_path} にコピーしました。")
+                    return target_path
+                except Exception as e:
+                    print(f"警告: 設定ファイルのコピーに失敗しました: {e}")
+
         raise FileNotFoundError(
-            "設定ファイルが見つかりません。以下のパスを確認してください:\n" + 
+            "設定ファイルが見つかりません。config.yaml または config.yaml.example を以下のパスに配置してください:\n" +
             "\n".join(f"  - {p}" for p in possible_paths)
         )
     

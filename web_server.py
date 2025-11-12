@@ -14,10 +14,20 @@ import argparse
 import threading
 from pathlib import Path
 from typing import Dict, List, Set, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 import uvicorn
+import yaml
+
+# PyAudio import for device enumeration (optional, with fallback)
+try:
+    import pyaudio
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    PYAUDIO_AVAILABLE = False
+    print("Warning: PyAudio not available. Audio device enumeration will be limited.")
 
 
 app = FastAPI(title="Audio Recognition System Web UI")
@@ -33,8 +43,14 @@ class ServerState:
         self.recognition_thread = None
         self.is_recognition_running = False
         self.recognition_system = None  # AudioTranscriptionSystem instance
+        self.config_path = "config.yaml"  # Config file path
 
 server_state = ServerState()
+
+
+# Pydantic models for API requests
+class ConfigUpdateRequest(BaseModel):
+    updates: Dict
 
 # WebSocket接続の管理
 class ConnectionManager:
@@ -267,6 +283,162 @@ async def broadcast_message(message: dict):
     return {"status": "ok"}
 
 
+@app.get("/api/config/full")
+async def get_full_config():
+    """
+    完全なconfig.yaml設定を取得
+
+    Returns:
+        config.yamlの全内容（dict形式）
+    """
+    try:
+        with open(server_state.config_path, 'r', encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+        return {"status": "success", "config": config_data}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Config file not found: {server_state.config_path}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading config: {str(e)}")
+
+
+@app.post("/api/config/update")
+async def update_config(request: ConfigUpdateRequest):
+    """
+    config.yaml設定を更新
+
+    Args:
+        request: ConfigUpdateRequest containing nested dict updates
+            Example: {"updates": {"tts.rate": "+50%", "translation.generation.darwin.temperature": 0.9}}
+
+    Returns:
+        Success status and updated values
+    """
+    try:
+        # Load current config
+        with open(server_state.config_path, 'r', encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+
+        # Apply updates (support nested paths with dot notation)
+        updated_keys = []
+        for key_path, value in request.updates.items():
+            keys = key_path.split('.')
+            target = config_data
+
+            # Navigate to the nested location
+            for key in keys[:-1]:
+                if key not in target:
+                    target[key] = {}
+                target = target[key]
+
+            # Set the value
+            final_key = keys[-1]
+            target[final_key] = value
+            updated_keys.append(key_path)
+
+        # Write back to file
+        with open(server_state.config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+        # Broadcast config change to all clients
+        await manager.broadcast({
+            "type": "config_updated",
+            "updated_keys": updated_keys,
+            "message": "Configuration updated successfully"
+        })
+
+        return {
+            "status": "success",
+            "updated_keys": updated_keys,
+            "message": "Config updated. Restart recognition for changes to take effect."
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating config: {str(e)}")
+
+
+@app.get("/api/audio/devices")
+async def get_audio_devices():
+    """
+    オーディオデバイスリストを取得
+
+    Returns:
+        入力デバイスと出力デバイスのリスト
+    """
+    if not PYAUDIO_AVAILABLE:
+        return {
+            "status": "unavailable",
+            "message": "PyAudio is not installed. Cannot enumerate audio devices.",
+            "input_devices": [],
+            "output_devices": []
+        }
+
+    try:
+        p = pyaudio.PyAudio()
+        input_devices = []
+        output_devices = []
+
+        # デバイス情報を取得
+        for i in range(p.get_device_count()):
+            try:
+                info = p.get_device_info_by_index(i)
+                device = {
+                    "index": i,
+                    "name": info.get('name', 'Unknown'),
+                    "max_input_channels": info.get('maxInputChannels', 0),
+                    "max_output_channels": info.get('maxOutputChannels', 0),
+                    "default_sample_rate": int(info.get('defaultSampleRate', 0))
+                }
+
+                # 入力デバイス
+                if device["max_input_channels"] > 0:
+                    input_devices.append({
+                        "index": device["index"],
+                        "name": device["name"],
+                        "channels": device["max_input_channels"],
+                        "sample_rate": device["default_sample_rate"]
+                    })
+
+                # 出力デバイス
+                if device["max_output_channels"] > 0:
+                    output_devices.append({
+                        "index": device["index"],
+                        "name": device["name"],
+                        "channels": device["max_output_channels"],
+                        "sample_rate": device["default_sample_rate"]
+                    })
+
+            except Exception as e:
+                print(f"Error getting device {i} info: {e}")
+                continue
+
+        # Get default devices before terminating PyAudio
+        default_input_idx = None
+        default_output_idx = None
+
+        try:
+            default_input_idx = p.get_default_input_device_info()['index']
+        except Exception:
+            pass
+
+        try:
+            default_output_idx = p.get_default_output_device_info()['index']
+        except Exception:
+            pass
+
+        p.terminate()
+
+        return {
+            "status": "success",
+            "input_devices": input_devices,
+            "output_devices": output_devices,
+            "default_input": default_input_idx,
+            "default_output": default_output_idx
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error enumerating audio devices: {str(e)}")
+
+
 def run_recognition_system(config_path: str = "config.yaml",
                           source_lang: Optional[str] = None,
                           target_lang: Optional[str] = None,
@@ -356,6 +528,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
     web_ui_url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{port}"
 
     # サーバー設定を保存
+    server_state.config_path = config_path  # Save config path for API endpoints
     server_state.config["mode"] = mode
     if source_lang:
         server_state.config["source_lang"] = source_lang
