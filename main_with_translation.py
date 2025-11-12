@@ -11,6 +11,9 @@ import time
 import queue
 from pathlib import Path
 
+# Logging
+from utils.logger import setup_logger
+
 # クリーン統合版ConfigManager
 from config_manager import ConfigManager
 
@@ -38,6 +41,9 @@ except ImportError:
 # グローバルシステムインスタンス（Web UIから停止するため）
 _system_instance = None
 
+# Setup logger
+logger = setup_logger(__name__)
+
 
 class AudioRecognitionSystem:
     """音声認識＋翻訳システムのメインクラス"""
@@ -61,32 +67,33 @@ class AudioRecognitionSystem:
             threading.Thread(target=self.speech_recognition.recognition_thread, args=(self.is_running,)),
             threading.Thread(target=self.translation.translation_thread, args=(self.is_running,))
         ]
-        
-        print("\n" + "="*60)
-        print("音声認識＋翻訳システムを起動しています...")
-        print("="*60)
+
+        logger.info("="*60)
+        logger.info("音声認識＋翻訳システムを起動しています...")
+        logger.info("="*60)
         if self.debug:
-            print("デバッグモード: 有効")
-        
+            logger.info("デバッグモード: 有効")
+
         for thread in threads:
             thread.start()
-        
-        print("システムが起動しました。終了するには Ctrl+C を押してください。\n")
-        
+
+        logger.info("システムが起動しました。終了するには Ctrl+C を押してください。")
+
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n\n" + "="*60)
-            print("終了しています。しばらくお待ちください...")
-            print("="*60)
+            logger.info("")
+            logger.info("="*60)
+            logger.info("終了しています。しばらくお待ちください...")
+            logger.info("="*60)
             self.is_running.clear()
 
         # スレッド終了を待機（タイムアウト: 2秒）
         for thread in threads:
             thread.join(timeout=2.0)
 
-        print("\nプログラムを終了しました。\n")
+        logger.info("プログラムを終了しました。")
 
 
 def parse_arguments():
@@ -162,32 +169,32 @@ def main():
     # 設定ファイルの存在確認
     config_path = Path(args.config)
     if not config_path.exists():
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}")
-        print(f"   カレントディレクトリ: {Path.cwd()}")
-        print(f"\nヒント: --config オプションで設定ファイルのパスを指定してください")
+        logger.error(f"設定ファイルが見つかりません: {config_path}")
+        logger.error(f"   カレントディレクトリ: {Path.cwd()}")
+        logger.error("ヒント: --config オプションで設定ファイルのパスを指定してください")
         sys.exit(1)
     
     try:
         # =====================================
         # ConfigManagerの初期化
         # =====================================
-        print(f"\n設定を読み込んでいます...")
-        print(f"   設定ファイル: {config_path}")
-        print(f"   プロファイル: {args.profile}")
-        
+        logger.info("設定を読み込んでいます...")
+        logger.info(f"   設定ファイル: {config_path}")
+        logger.info(f"   プロファイル: {args.profile}")
+
         config = ConfigManager(
             config_path=str(config_path),
             profile=args.profile
         )
-        
+
         # コマンドライン引数による上書き（公式 API を使用）
         if args.output_dir:
             config.set_output_dir(args.output_dir)
-            print(f"   出力ディレクトリを上書き: {args.output_dir}")
+            logger.info(f"   出力ディレクトリを上書き: {args.output_dir}")
 
         if args.batch_size:
             config.set_batch_size(args.batch_size)
-            print(f"   バッチサイズを上書き: {args.batch_size}")
+            logger.info(f"   バッチサイズを上書き: {args.batch_size}")
 
         if args.model_size:
             # ASRモデルサイズの上書き（platform 固有）
@@ -198,11 +205,11 @@ def main():
             if config.platform not in config._config['models']['asr']:
                 config._config['models']['asr'][config.platform] = {}
             config._config['models']['asr'][config.platform]['model_size'] = args.model_size
-            print(f"   モデルサイズを上書き: {args.model_size}")
+            logger.info(f"   モデルサイズを上書き: {args.model_size}")
 
         if args.debug:
             config.set_debug(True)
-            print(f"   デバッグモードを上書き: 有効")
+            logger.info(f"   デバッグモードを上書き: 有効")
 
         # 言語設定の上書き（公式 API を使用）
         if args.source_lang or args.target_lang:
@@ -210,9 +217,9 @@ def main():
             target = args.target_lang or config.language.target
             config.set_language(source, target)
             if args.source_lang:
-                print(f"   入力言語を上書き: {args.source_lang}")
+                logger.info(f"   入力言語を上書き: {args.source_lang}")
             if args.target_lang:
-                print(f"   出力言語を上書き: {args.target_lang}")
+                logger.info(f"   出力言語を上書き: {args.target_lang}")
         
         # =====================================
         # 設定の表示
