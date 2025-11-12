@@ -1,42 +1,42 @@
 # --- Core ---
-pyyaml>=6.0
-psutil
-noisereduce
-scipy>=1.11
-requests>=2.31.0
+pyyaml>=6.0.2,<7.0.0
+psutil>=5.9.8,<8.0.0
+noisereduce>=3.0.0,<4.0.0
+scipy>=1.11,<2.0.0
+requests>=2.32.3,<3.0.0
 
 # --- Hugging Face / LLM 共通 ---
-transformers>=4.38.0
-accelerate>=0.20.1
-huggingface_hub>=0.23.0
-safetensors>=0.4.0
-sentencepiece>=0.1.99
-protobuf>=4.25.0
+transformers>=4.45.0,<5.0.0
+accelerate>=0.27.0,<2.0.0
+huggingface_hub>=0.25.0,<1.0.0
+safetensors>=0.4.0,<1.0.0
+sentencepiece>=0.1.99,<1.0.0
+protobuf>=4.25.0,<6.0.0
 
 # --- Audio I/O ---
-pyaudio
+pyaudio==0.2.14
 
 # --- Text-to-Speech (Optional) ---
-edge-tts>=7.0.0
+edge-tts>=7.1.5,<8.0.0
 # Note: ffmpeg is required for MP3 to WAV conversion (install via: brew install ffmpeg)
 
 # --- API Server Mode (Optional: for LM Studio, Ollama, vLLM, etc.) ---
-openai>=1.0.0
+openai>=1.30.0,<3.0.0
 
 # --- Web UI (Optional) ---
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-websockets>=12.0
+fastapi>=0.111.0,<1.0.0
+uvicorn[standard]>=0.30.0,<1.0.0
+websockets>=12.0,<16.0.0
 
 # --- macOS (MLX 経路：GGUF 直読み & Whisper MLX) ---
-mlx>=0.29.0; sys_platform == "darwin"
-mlx-lm>=0.28.0; sys_platform == "darwin"
-mlx-whisper>=0.4.0; sys_platform == "darwin"
+mlx>=0.29.0,<1.0.0; sys_platform == "darwin"
+mlx-lm>=0.28.0,<1.0.0; sys_platform == "darwin"
+mlx-whisper>=0.4.0,<1.0.0; sys_platform == "darwin"
 
 # --- Windows/Linux （Transformers or llama.cpp 経路）---
-torch>=2.1.0; sys_platform != "darwin"
-triton>=3.4.0; sys_platform == "linux"
-triton-windows>=3.4.0; sys_platform == "win32"
-openai-whisper; sys_platform != "darwin"
-llama-cpp-python>=0.3.2; sys_platform != "darwin"
+torch>=2.2.0,<3.0.0; sys_platform != "darwin"
+triton>=3.4.0,<4.0.0; sys_platform == "linux"
+triton-windows>=3.4.0,<4.0.0; sys_platform == "win32"
+openai-whisper>=20240930,<20260101; sys_platform != "darwin"
+llama-cpp-python>=0.3.2,<1.0.0; sys_platform != "darwin"
 
