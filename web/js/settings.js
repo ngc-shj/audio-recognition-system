@@ -307,10 +307,18 @@ export function setupAdvancedSettings() {
         });
     }
 
-    // Refresh devices button
+    // Refresh devices buttons
     const refreshInputDevicesBtn = document.getElementById('refreshInputDevices');
     if (refreshInputDevicesBtn) {
         refreshInputDevicesBtn.addEventListener('click', async () => {
+            await loadAudioDevices();
+            showToast('🔄 Audio devices refreshed', 'info', 2000);
+        });
+    }
+
+    const refreshOutputDevicesBtn = document.getElementById('refreshOutputDevices');
+    if (refreshOutputDevicesBtn) {
+        refreshOutputDevicesBtn.addEventListener('click', async () => {
             await loadAudioDevices();
             showToast('🔄 Audio devices refreshed', 'info', 2000);
         });
