@@ -176,6 +176,23 @@ class Translation:
         # 出力ファイルの設定
         self._setup_output_files()
 
+    def reload_config(self, trans_config):
+        """
+        Translation設定をリアルタイムで再読み込み
+
+        Args:
+            trans_config: 新しいTranslation設定（TranslationConfig）
+
+        Note:
+            temperature などの生成パラメータは次回の翻訳から反映されます。
+            context_window_size の変更は再起動が必要です（deque の maxlen は変更不可）。
+        """
+        # 生成パラメータのみ更新（リアルタイム反映可能）
+        self.generation_params = trans_config.generation_params
+        if self.debug:
+            logger.info("Translation config reloaded")
+            logger.info(f"  Generation params: {self.generation_params}")
+
     def _setup_default_generation_params(self) -> Dict:
         """デフォルトの生成パラメータを設定"""
         if sys.platform == 'darwin':

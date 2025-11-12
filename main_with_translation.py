@@ -38,11 +38,12 @@ try:
 except ImportError:
     WEB_UI_AVAILABLE = False
 
-# グローバルシステムインスタンス（Web UIから停止するため）
+# グローバルシステムインスタンス（Web UIから停止・設定リロードするため）
 # スレッドセーフなアクセスを保証するためのロック
 import threading
 _system_instance = None
 _system_instance_lock = threading.Lock()
+_config_manager_instance = None
 
 # Setup logger
 logger = setup_logger(__name__)
@@ -190,6 +191,10 @@ def main():
             config_path=str(config_path),
             profile=args.profile
         )
+
+        # グローバル変数に保存（Web UIから設定リロードできるようにする）
+        global _config_manager_instance
+        _config_manager_instance = config
 
         # コマンドライン引数による上書き（公式 API を使用）
         if args.output_dir:
