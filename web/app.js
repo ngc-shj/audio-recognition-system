@@ -420,6 +420,11 @@ function updateUIForMode(mode) {
         translationSettings.classList.remove('hidden');
     }
 
+    // Update advanced settings UI based on mode
+    if (typeof setupModeDependentUI === 'function') {
+        setupModeDependentUI();
+    }
+
     // 既存のペアを再描画（モードによって表示が変わるため）
     textPairs.forEach(pair => {
         updatePairDisplay(pair);
@@ -720,10 +725,36 @@ function setupPlatformDependentUI() {
     }
 }
 
+// Setup mode-dependent UI (Translation vs Transcript)
+function setupModeDependentUI() {
+    const modeElement = document.getElementById('mode');
+    if (!modeElement) return;
+
+    const mode = modeElement.value;
+    const translationModelSection = document.getElementById('translationModelSection');
+    const translationParametersSection = document.getElementById('translationParametersSection');
+    const ttsAdvancedSettings = document.getElementById('ttsAdvancedSettings');
+
+    if (mode === 'translation') {
+        // Translation mode: Show all translation-related sections
+        if (translationModelSection) translationModelSection.style.display = 'block';
+        if (translationParametersSection) translationParametersSection.style.display = 'block';
+        if (ttsAdvancedSettings) ttsAdvancedSettings.style.display = 'block';
+    } else {
+        // Transcript mode: Hide translation-related sections
+        if (translationModelSection) translationModelSection.style.display = 'none';
+        if (translationParametersSection) translationParametersSection.style.display = 'none';
+        if (ttsAdvancedSettings) ttsAdvancedSettings.style.display = 'none';
+    }
+}
+
 // Setup advanced settings event listeners
 function setupAdvancedSettings() {
     // Setup platform-dependent UI first
     setupPlatformDependentUI();
+
+    // Setup mode-dependent UI
+    setupModeDependentUI();
 
     // API enabled checkbox toggle (exclusive with local model)
     document.getElementById('apiEnabled').addEventListener('change', (e) => {
