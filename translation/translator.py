@@ -18,6 +18,9 @@ from threading import Event
 # Logging
 from utils.logger import setup_logger
 
+# Setup logger
+logger = setup_logger(__name__)
+
 if sys.platform == 'darwin':
     try:
         from mlx_lm import load, generate
@@ -44,9 +47,6 @@ except ImportError:
     OPENAI_AVAILABLE = False
     logger.info("INFO: openai package not available. API server mode will not be supported.")
 
-
-# Setup logger
-logger = setup_logger(__name__)
 
 class Translation:
     """
@@ -597,9 +597,12 @@ class Translation:
             self.last_reload_time = current_time
 
     @staticmethod
-    def preprocess_text(text):
+    def preprocess_text(text: Optional[str]) -> str:
         """テキストの前処理"""
-        return text.strip()
+        if text is None:
+            return ""
+        # 複数の空白を1つに変換
+        return ' '.join(text.split())
 
     def _parse_gpt_oss_output(self, output: str) -> str:
         """
