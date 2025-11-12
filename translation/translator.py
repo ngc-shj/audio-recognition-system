@@ -12,7 +12,8 @@ import time
 import gc
 import torch
 from collections import deque
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple, Any, Union
+from threading import Event
 
 # Logging
 from utils.logger import setup_logger
@@ -54,7 +55,15 @@ class Translation:
     ConfigManagerから設定を取得し、LLMで翻訳を実行します。
     """
     
-    def __init__(self, translation_queue, config_manager, lang_config, debug=False, tts=None, web_ui=None):
+    def __init__(
+        self,
+        translation_queue: queue.Queue,
+        config_manager: Any,
+        lang_config: Any,
+        debug: bool = False,
+        tts: Optional[Any] = None,
+        web_ui: Optional[Any] = None
+    ) -> None:
         """
         Args:
             translation_queue: 翻訳待ちテキストのキュー
@@ -217,13 +226,23 @@ class Translation:
         logger.info(f"翻訳ログ: {self.log_file_path}")
         logger.info(f"対訳ログ: {self.bilingual_log_file_path}")
 
-    def load_model(self):
+    def load_model(self) -> None:
         """翻訳モデル/APIクライアントのロード"""
         try:
-            # 既存モデルのクリーンアップ
-            del self.llm_model
-            del self.llm_tokenizer
-            del self.api_client
+            # 既存モデルのクリーンアップ（メモリ解放を保証）
+            if hasattr(self, 'llm_model') and self.llm_model is not None:
+                del self.llm_model
+                self.llm_model = None
+            if hasattr(self, 'llm_tokenizer') and self.llm_tokenizer is not None:
+                del self.llm_tokenizer
+                self.llm_tokenizer = None
+            if hasattr(self, 'api_client') and self.api_client is not None:
+                del self.api_client
+                self.api_client = None
+
+            # ガベージコレクションを強制実行してメモリを確実に解放
+            import gc
+            gc.collect()
 
             # APIサーバーを使用する場合
             if self.use_api:
@@ -326,7 +345,7 @@ class Translation:
             logger.info(f"モデルの再ロード中にエラーが発生しました: {e}")
             raise
 
-    def translation_thread(self, is_running):
+    def translation_thread(self, is_running: Event) -> None:
         """翻訳スレッドのメイン処理"""
         logger.info(f"翻訳スレッド開始 ({self.lang_config.source} → {self.lang_config.target})")
         
@@ -341,25 +360,29 @@ class Translation:
                         logger.info(f"\n再翻訳を試みます: {texts_to_translate[-1]}\n")
 
                 # キューから新しいテキストを追加
-                while len(texts_to_translate) < self.batch_size:
+                # 最初のアイテムはtimeout付きで待機（CPU効率化）
+                if not texts_to_translate:
                     try:
-                        item = self.translation_queue.get_nowait()
-                        # 辞書形式（{text, pair_id}）または文字列を受け入れる
+                        item = self.translation_queue.get(timeout=1.0)  # 0.1秒→1.0秒に変更でCPU使用率削減
                         if isinstance(item, dict):
                             texts_to_translate.append(item)
                         else:
                             texts_to_translate.append({'text': item, 'pair_id': None})
                     except queue.Empty:
-                        if self.debug:
-                            logger.info("翻訳キューが空です")
+                        if not is_running.is_set():
+                            break
+                        continue
+
+                # 残りのアイテムはノンブロッキングで取得
+                while len(texts_to_translate) < self.batch_size:
+                    try:
+                        item = self.translation_queue.get_nowait()
+                        if isinstance(item, dict):
+                            texts_to_translate.append(item)
+                        else:
+                            texts_to_translate.append({'text': item, 'pair_id': None})
+                    except queue.Empty:
                         break
-                
-                if not texts_to_translate:
-                    # シャットダウン中は待機しない
-                    if not is_running.is_set():
-                        break
-                    time.sleep(0.2)
-                    continue
 
                 # バッチ翻訳の実行（複数テキストをまとめて処理）
                 translated_texts = []
@@ -427,7 +450,7 @@ class Translation:
         
         logger.info("翻訳スレッド終了")
 
-    def translate_text(self, text):
+    def translate_text(self, text: str) -> Optional[str]:
         """テキストを翻訳"""
         # コンテキストの構築
         context_str = ""
