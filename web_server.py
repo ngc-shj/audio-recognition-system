@@ -12,6 +12,8 @@ import json
 import sys
 import argparse
 import threading
+import shutil
+import os
 from pathlib import Path
 from typing import Dict, List, Set, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -525,6 +527,20 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
         target_lang: 翻訳先言語
         mode: 動作モード ('translation' or 'transcript')
     """
+    # config.yamlが存在しない場合、config.yaml.exampleからコピー
+    if not os.path.exists(config_path):
+        example_path = config_path + ".example"
+        if os.path.exists(example_path):
+            try:
+                shutil.copy2(example_path, config_path)
+                print(f"初回起動: {example_path} を {config_path} にコピーしました。")
+            except Exception as e:
+                print(f"警告: 設定ファイルのコピーに失敗しました: {e}")
+                print(f"手動で {example_path} を {config_path} にコピーしてください。")
+        else:
+            print(f"警告: {config_path} と {example_path} が見つかりません。")
+            print("設定ファイルが必要です。")
+
     web_ui_url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{port}"
 
     # サーバー設定を保存
