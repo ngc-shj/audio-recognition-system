@@ -620,9 +620,9 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
             },
         },
         "loggers": {
-            "uvicorn": {"handlers": ["default"], "level": "INFO"},
-            "uvicorn.error": {"handlers": ["default"], "level": "INFO"},
-            "uvicorn.access": {"handlers": ["default"], "level": "INFO"},
+            "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
+            "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
+            "uvicorn.access": {"handlers": ["default"], "level": "INFO", "propagate": False},
         },
     }
 
