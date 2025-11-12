@@ -117,11 +117,12 @@ function connectWebSocket() {
     console.log('Connecting to WebSocket:', wsUrl);
     ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
+    ws.onopen = async () => {
         console.log('WebSocket connected');
         isConnected = true;
-        updateStatus('connected', 'Connected');
-        startBtn.disabled = false;
+
+        // WebSocket接続後に認識ステータスを再確認してボタン状態を適切に設定
+        await checkRecognitionStatus();
 
         // Ping/pongで接続維持
         setInterval(() => {
@@ -580,20 +581,371 @@ async function checkRecognitionStatus() {
         if (response.ok) {
             const status = await response.json();
             if (status.recognition_active) {
+                // 認識実行中
                 isRunning = true;
                 updateStatus('running', 'Recognition Running');
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
+            } else {
+                // 認識停止中
+                isRunning = false;
+                updateStatus('connected', 'Connected');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
             }
         }
     } catch (error) {
         console.error('Failed to check recognition status:', error);
+        // エラー時は接続されていない状態にする
+        updateStatus('disconnected', 'Disconnected');
+        startBtn.disabled = true;
+        stopBtn.disabled = true;
     }
+}
+
+// ========================================
+// Advanced Settings Management
+// ========================================
+
+// Load full config from server
+async function loadFullConfig() {
+    try {
+        const response = await fetch('/api/config/full');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.status === 'success') {
+                populateAdvancedSettings(data.config);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load full config:', error);
+    }
+}
+
+// Populate advanced settings UI with config values
+function populateAdvancedSettings(config) {
+    // TTS Settings
+    if (config.tts) {
+        document.getElementById('ttsRate').value = config.tts.rate || '+30%';
+        document.getElementById('ttsVolume').value = config.tts.volume || '+0%';
+        document.getElementById('ttsPitch').value = config.tts.pitch || '+0Hz';
+    }
+
+    // Model Settings
+    if (config.models) {
+        // ASR Model
+        if (config.models.asr && config.models.asr.darwin) {
+            document.getElementById('asrModelPath').value = config.models.asr.darwin.model_path || 'mlx-community/whisper-large-v3-turbo';
+            document.getElementById('asrModelSize').value = config.models.asr.darwin.model_size || 'large-v3-turbo';
+        }
+
+        // Translation Model
+        if (config.models.translation && config.models.translation.darwin) {
+            document.getElementById('translationModelPath').value = config.models.translation.darwin.model_path || 'mlx-community/gpt-oss-20b-MXFP4-Q4';
+        }
+    }
+
+    // API Settings
+    if (config.models && config.models.translation && config.models.translation.api) {
+        const apiConfig = config.models.translation.api;
+        document.getElementById('apiEnabled').checked = apiConfig.enabled || false;
+        document.getElementById('apiBaseUrl').value = apiConfig.base_url || 'http://localhost:1234/v1';
+        document.getElementById('apiModel').value = apiConfig.model || 'local-model';
+
+        // Toggle between local model and API server settings
+        const apiServerSettings = document.getElementById('apiServerSettings');
+        const localModelSettings = document.getElementById('localModelSettings');
+
+        if (apiConfig.enabled) {
+            apiServerSettings.classList.remove('hidden');
+            localModelSettings.classList.add('hidden');
+        } else {
+            apiServerSettings.classList.add('hidden');
+            localModelSettings.classList.remove('hidden');
+        }
+    }
+
+    // Audio Detection Settings
+    if (config.audio && config.audio.voice_detection) {
+        const silenceThreshold = config.audio.voice_detection.silence_threshold || 0.005;
+        document.getElementById('silenceThreshold').value = silenceThreshold;
+        document.getElementById('silenceThresholdValue').textContent = silenceThreshold;
+    }
+
+    if (config.audio && config.audio.dynamic_buffer) {
+        const mediumPause = config.audio.dynamic_buffer.medium_pause || 0.8;
+        const longPause = config.audio.dynamic_buffer.long_pause || 1.5;
+
+        document.getElementById('mediumPause').value = mediumPause;
+        document.getElementById('mediumPauseValue').textContent = `${mediumPause}s`;
+
+        document.getElementById('longPause').value = longPause;
+        document.getElementById('longPauseValue').textContent = `${longPause}s`;
+    }
+
+    // Translation Parameters
+    if (config.translation && config.translation.generation) {
+        const genConfig = config.translation.generation.darwin || config.translation.generation.default || {};
+        const temperature = genConfig.temperature || 0.8;
+        document.getElementById('temperature').value = temperature;
+        document.getElementById('temperatureValue').textContent = temperature;
+    }
+
+    if (config.translation && config.translation.context) {
+        const windowSize = config.translation.context.window_size || 8;
+        document.getElementById('contextWindowSize').value = windowSize;
+        document.getElementById('contextWindowSizeValue').textContent = `${windowSize} sentences`;
+    }
+
+    // Audio Device Settings - これらは個別にロードされる
+    // (loadAudioDevicesで処理)
+}
+
+// Setup platform-dependent UI (ASR model fields)
+function setupPlatformDependentUI() {
+    // Detect macOS using userAgent (more reliable than deprecated navigator.platform)
+    const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+
+    const asrModelPathGroup = document.getElementById('asrModelPathGroup');
+    const asrModelSizeGroup = document.getElementById('asrModelSizeGroup');
+
+    if (isMac) {
+        // Show Path field for macOS (MLX format)
+        if (asrModelPathGroup) asrModelPathGroup.style.display = 'block';
+        if (asrModelSizeGroup) asrModelSizeGroup.style.display = 'none';
+    } else {
+        // Show Size field for Linux/Windows (auto-download)
+        if (asrModelPathGroup) asrModelPathGroup.style.display = 'none';
+        if (asrModelSizeGroup) asrModelSizeGroup.style.display = 'block';
+    }
+}
+
+// Setup advanced settings event listeners
+function setupAdvancedSettings() {
+    // Setup platform-dependent UI first
+    setupPlatformDependentUI();
+
+    // API enabled checkbox toggle (exclusive with local model)
+    document.getElementById('apiEnabled').addEventListener('change', (e) => {
+        const apiServerSettings = document.getElementById('apiServerSettings');
+        const localModelSettings = document.getElementById('localModelSettings');
+
+        if (e.target.checked) {
+            // Show API settings, hide local model settings
+            apiServerSettings.classList.remove('hidden');
+            localModelSettings.classList.add('hidden');
+        } else {
+            // Show local model settings, hide API settings
+            apiServerSettings.classList.add('hidden');
+            localModelSettings.classList.remove('hidden');
+        }
+    });
+
+    // Range input value display updates
+    document.getElementById('silenceThreshold').addEventListener('input', (e) => {
+        document.getElementById('silenceThresholdValue').textContent = e.target.value;
+    });
+
+    document.getElementById('mediumPause').addEventListener('input', (e) => {
+        document.getElementById('mediumPauseValue').textContent = `${e.target.value}s`;
+    });
+
+    document.getElementById('longPause').addEventListener('input', (e) => {
+        document.getElementById('longPauseValue').textContent = `${e.target.value}s`;
+    });
+
+    document.getElementById('temperature').addEventListener('input', (e) => {
+        document.getElementById('temperatureValue').textContent = e.target.value;
+    });
+
+    document.getElementById('contextWindowSize').addEventListener('input', (e) => {
+        document.getElementById('contextWindowSizeValue').textContent = `${e.target.value} sentences`;
+    });
+
+    // Refresh devices button
+    document.getElementById('refreshInputDevices').addEventListener('click', async () => {
+        await loadAudioDevices();
+        showToast('🔄 Audio devices refreshed', 'info', 2000);
+    });
+
+    // Save Advanced Settings button
+    document.getElementById('saveAdvancedSettings').addEventListener('click', async () => {
+        await saveAdvancedSettings();
+    });
+}
+
+// Save advanced settings to server
+async function saveAdvancedSettings() {
+    // Detect platform to save only the appropriate ASR model field
+    const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+
+    const updates = {
+        // TTS Settings
+        'tts.rate': document.getElementById('ttsRate').value,
+        'tts.volume': document.getElementById('ttsVolume').value,
+        'tts.pitch': document.getElementById('ttsPitch').value,
+
+        // Model Settings - only save the visible ASR field based on platform
+        'models.translation.darwin.model_path': document.getElementById('translationModelPath').value,
+
+        // API Settings
+        'models.translation.api.enabled': document.getElementById('apiEnabled').checked,
+        'models.translation.api.base_url': document.getElementById('apiBaseUrl').value,
+        'models.translation.api.model': document.getElementById('apiModel').value,
+
+        // Audio Device Settings
+        'audio.input_device': document.getElementById('inputDevice').value || null,
+        'tts.output_device': document.getElementById('outputDevice').value || null,
+
+        // Audio Detection
+        'audio.voice_detection.silence_threshold': parseFloat(document.getElementById('silenceThreshold').value),
+        'audio.dynamic_buffer.medium_pause': parseFloat(document.getElementById('mediumPause').value),
+        'audio.dynamic_buffer.long_pause': parseFloat(document.getElementById('longPause').value),
+
+        // Translation Parameters
+        'translation.generation.darwin.temperature': parseFloat(document.getElementById('temperature').value),
+        'translation.generation.default.temperature': parseFloat(document.getElementById('temperature').value),
+        'translation.context.window_size': parseInt(document.getElementById('contextWindowSize').value)
+    };
+
+    // Add platform-specific ASR model field
+    if (isMac) {
+        updates['models.asr.darwin.model_path'] = document.getElementById('asrModelPath').value;
+    } else {
+        updates['models.asr.darwin.model_size'] = document.getElementById('asrModelSize').value;
+    }
+
+    try {
+        const response = await fetch('/api/config/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ updates })
+        });
+
+        if (response.ok) {
+            await response.json();  // Parse response but result not needed
+            showToast('✅ Settings saved successfully! Restart recognition for changes to take effect.', 'info', 5000);
+
+            // Reload full config to reflect changes
+            await loadFullConfig();
+        } else {
+            const error = await response.json();
+            showToast(`❌ Failed to save settings: ${error.detail}`, 'warning', 5000);
+        }
+    } catch (error) {
+        console.error('Error saving advanced settings:', error);
+        showToast('❌ Error saving settings. Please try again.', 'warning', 5000);
+    }
+}
+
+// Load audio devices and populate dropdowns
+async function loadAudioDevices() {
+    try {
+        const response = await fetch('/api/audio/devices');
+        if (response.ok) {
+            const data = await response.json();
+
+            if (data.status === 'unavailable') {
+                console.warn('PyAudio not available:', data.message);
+                return;
+            }
+
+            // Get current config for selected devices
+            const configResponse = await fetch('/api/config/full');
+            let currentInputDevice = null;
+            let currentOutputDevice = null;
+
+            if (configResponse.ok) {
+                const configData = await configResponse.json();
+                if (configData.status === 'success') {
+                    currentInputDevice = configData.config.audio?.input_device;
+                    currentOutputDevice = configData.config.tts?.output_device;
+                }
+            }
+
+            // Populate input devices
+            const inputSelect = document.getElementById('inputDevice');
+            inputSelect.innerHTML = '<option value="">Default (Auto-detect)</option>';
+
+            data.input_devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.name;
+                option.textContent = `${device.name} (${device.channels}ch, ${device.sample_rate}Hz)`;
+                if (device.name === currentInputDevice) {
+                    option.selected = true;
+                }
+                inputSelect.appendChild(option);
+            });
+
+            // Populate output devices
+            const outputSelect = document.getElementById('outputDevice');
+            outputSelect.innerHTML = '<option value="">Default (System Speaker)</option>';
+
+            data.output_devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.name;
+                option.textContent = `${device.name} (${device.channels}ch, ${device.sample_rate}Hz)`;
+                if (device.name === currentOutputDevice) {
+                    option.selected = true;
+                }
+                outputSelect.appendChild(option);
+            });
+
+            // ループバック防止：input/output device選択時の相互排他チェック
+            setupDeviceSelectionValidation();
+
+        }
+    } catch (error) {
+        console.error('Failed to load audio devices:', error);
+    }
+}
+
+// デバイス選択の検証（ループバック防止）
+function setupDeviceSelectionValidation() {
+    const inputSelect = document.getElementById('inputDevice');
+    const outputSelect = document.getElementById('outputDevice');
+
+    if (!inputSelect || !outputSelect) return;
+
+    // Input device変更時
+    inputSelect.addEventListener('change', () => {
+        const inputDevice = inputSelect.value;
+        const outputDevice = outputSelect.value;
+
+        // 両方が選択されていて、かつ同じデバイスの場合
+        if (inputDevice && outputDevice && inputDevice === outputDevice) {
+            showToast('⚠️ Warning: Input and Output devices are the same. This may cause audio feedback loop!', 'warning', 5000);
+
+            // Output deviceを自動的にDefaultに戻す
+            outputSelect.value = '';
+            showToast('Output device reset to Default to prevent feedback loop.', 'info', 3000);
+        }
+    });
+
+    // Output device変更時
+    outputSelect.addEventListener('change', () => {
+        const inputDevice = inputSelect.value;
+        const outputDevice = outputSelect.value;
+
+        // 両方が選択されていて、かつ同じデバイスの場合
+        if (inputDevice && outputDevice && inputDevice === outputDevice) {
+            showToast('⚠️ Warning: Input and Output devices are the same. This may cause audio feedback loop!', 'warning', 5000);
+
+            // Input deviceを自動的にDefaultに戻す
+            inputSelect.value = '';
+            showToast('Input device reset to Default to prevent feedback loop.', 'info', 3000);
+        }
+    });
 }
 
 // ページロード時に設定を読み込んでから接続
 window.addEventListener('load', async () => {
     await loadServerConfig();
+    await loadFullConfig();  // Load advanced settings
+    await loadAudioDevices();  // Load audio devices
     await checkRecognitionStatus();
+    setupAdvancedSettings();  // Setup advanced settings event listeners
     connectWebSocket();
 });
