@@ -160,24 +160,52 @@
             transition: all 0.2s ease;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #ccc !important;
+            color: #888 !important;
+            box-shadow: none !important;
         }
 
         .btn-start {
             background: #667eea;
             color: white;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-start:hover:not(:disabled) {
+            background: #5568d3;
         }
 
         .btn-stop {
             background: #f5576c;
             color: white;
+            box-shadow: 0 2px 4px rgba(245, 87, 108, 0.3);
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: #e04455;
         }
 
         .btn-clear {
             background: transparent;
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-clear:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .main-content {
