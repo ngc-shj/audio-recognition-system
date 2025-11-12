@@ -7,6 +7,12 @@ import pyaudio
 import numpy as np
 import time
 
+# Logging
+from utils.logger import setup_logger
+
+
+# Setup logger
+logger = setup_logger(__name__)
 
 class AudioCapture:
     """
@@ -59,7 +65,7 @@ class AudioCapture:
             stream_callback=self.audio_callback
         )
         
-        print(f"音声キャプチャスレッド開始 (デバイスインデックス: {self.input_device_index})")
+        logger.info(f"音声キャプチャスレッド開始 (デバイスインデックス: {self.input_device_index})")
         
         stream.start_stream()
 
@@ -70,7 +76,7 @@ class AudioCapture:
         stream.close()
         audio.terminate()
         
-        print("音声キャプチャスレッド終了")
+        logger.info("音声キャプチャスレッド終了")
 
     @staticmethod
     def get_input_device_index(input_device):

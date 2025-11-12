@@ -7,6 +7,9 @@ import time
 import numpy as np
 import pyaudio
 
+# Logging
+from utils.logger import setup_logger
+
 if sys.platform == 'darwin':
     import mlx_whisper
 else:
@@ -14,6 +17,9 @@ else:
 
 # 共通の音声正規化関数
 from utils.audio_normalization import normalize_audio
+
+# Setup logger
+logger = setup_logger(__name__)
 
 class SpeechRecognition:
     def __init__(self, audio_config, processing_queue, translation_queue,
@@ -67,7 +73,7 @@ class SpeechRecognition:
                 normalized_audio = self.normalize_audio(audio_data)
                 
                 if self.debug:
-                    print("\n音声認識処理開始")
+                    logger.info("\n音声認識処理開始")
                     debug_file = os.path.join(
                         self.debug_audio_dir,
                         f"debug_audio_{int(time.time() * 1000)}.wav"
@@ -87,7 +93,7 @@ class SpeechRecognition:
                             language=self.lang_config.source
                         )
                 except Exception as e:
-                    print(f"音声認識エラー: {e}")
+                    logger.info(f"音声認識エラー: {e}")
                     continue
                 
                 text = result['text'].strip()
@@ -114,13 +120,13 @@ class SpeechRecognition:
                         self.web_ui.send_recognized_text(text, self.lang_config.source, pair_id)
 
                 elif self.debug:
-                    print("処理後のテキストが空か、直前の文と同じため出力をスキップします")
+                    logger.info("処理後のテキストが空か、直前の文と同じため出力をスキップします")
 
             except queue.Empty:
                 if self.debug:
-                    print("認識キューが空です")
+                    logger.info("認識キューが空です")
             except Exception as e:
-                print(f"\nエラー (認識スレッド): {e}", flush=True)
+                logger.info(f"\nエラー (認識スレッド): {e}", flush=True)
 
         # スレッド終了時に残りのバッファをフラッシュ
         self._flush_log_buffer()
@@ -162,7 +168,7 @@ class SpeechRecognition:
                     log_file.write(text + "\n")
             self._log_buffer.clear()
         except IOError as e:
-            print(f"ログ書き込みエラー: {e}", flush=True)
+            logger.info(f"ログ書き込みエラー: {e}", flush=True)
 
     def close(self):
         """クローズ時に残りのバッファをフラッシュ"""
@@ -195,5 +201,5 @@ class SpeechRecognition:
             final_output += line
 
         # コンソールに出力
-        print(final_output, end='', flush=True)
+        logger.info(final_output, end='', flush=True)
 

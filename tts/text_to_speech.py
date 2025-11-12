@@ -10,13 +10,16 @@ from typing import Optional
 from threading import Thread, Lock
 from queue import Queue
 
+# Logging
+from utils.logger import setup_logger
+
 # edge-tts のインポート（オプショナル）
 try:
     import edge_tts
     EDGE_TTS_AVAILABLE = True
 except ImportError:
     EDGE_TTS_AVAILABLE = False
-    print("Warning: edge-tts is not available. Install with 'pip install edge-tts'")
+    logger.warning(f" edge-tts is not available. Install with 'pip install edge-tts'")
 
 # PyAudio のインポート（音声再生用）
 try:
@@ -25,8 +28,11 @@ try:
     PYAUDIO_AVAILABLE = True
 except ImportError:
     PYAUDIO_AVAILABLE = False
-    print("Warning: pyaudio is not available. Audio playback will not work.")
+    logger.warning(f" pyaudio is not available. Audio playback will not work.")
 
+
+# Setup logger
+logger = setup_logger(__name__)
 
 class TextToSpeech:
     """
@@ -64,11 +70,11 @@ class TextToSpeech:
         if target_language and target_language in self.LANGUAGE_VOICES:
             self.voice = self.LANGUAGE_VOICES[target_language]
             if self.debug:
-                print(f"Auto-selected voice for language '{target_language}': {self.voice}")
+                logger.info(f"Auto-selected voice for language '{target_language}': {self.voice}")
         else:
             self.voice = self.config.voice
             if self.debug and target_language:
-                print(f"Language '{target_language}' not found in voice map, using config voice: {self.voice}")
+                logger.info(f"Language '{target_language}' not found in voice map, using config voice: {self.voice}")
 
         self.speech_queue = Queue()
         self.speech_thread = None
@@ -77,36 +83,36 @@ class TextToSpeech:
         self.output_device_index = None
 
         if not self.config.enabled:
-            print("TTS is disabled")
+            logger.info("TTS is disabled")
             return
 
         if not EDGE_TTS_AVAILABLE:
-            print("TTS is enabled but edge-tts is not available")
+            logger.info("TTS is enabled but edge-tts is not available")
             return
 
         if not PYAUDIO_AVAILABLE:
-            print("TTS is enabled but pyaudio is not available for playback")
+            logger.info("TTS is enabled but pyaudio is not available for playback")
             return
 
         # 出力デバイスの検索
         if self.config.output_device:
             self.output_device_index = self._find_output_device(self.config.output_device)
             if self.output_device_index is None:
-                print(f"Warning: Output device '{self.config.output_device}' not found. Using default device.")
+                logger.warning(f" Output device '{self.config.output_device}' not found. Using default device.")
 
         # 設定の表示
         if self.debug:
-            print(f"Initializing TTS engine: {self.config.engine}")
-            print(f"  Voice: {self.voice}")
-            print(f"  Target Language: {self.target_language or 'Not specified'}")
-            print(f"  Rate: {self.config.rate}")
-            print(f"  Volume: {self.config.volume}")
-            print(f"  Pitch: {self.config.pitch}")
-            print(f"  Output Device: {self.config.output_device or 'Default'}")
+            logger.info(f"Initializing TTS engine: {self.config.engine}")
+            logger.info(f"  Voice: {self.voice}")
+            logger.info(f"  Target Language: {self.target_language or 'Not specified'}")
+            logger.info(f"  Rate: {self.config.rate}")
+            logger.info(f"  Volume: {self.config.volume}")
+            logger.info(f"  Pitch: {self.config.pitch}")
+            logger.info(f"  Output Device: {self.config.output_device or 'Default'}")
             if self.output_device_index is not None:
-                print(f"  Output Device Index: {self.output_device_index}")
+                logger.info(f"  Output Device Index: {self.output_device_index}")
 
-        print("TTS engine initialized successfully")
+        logger.info("TTS engine initialized successfully")
 
         # 音声再生スレッドの開始
         self._start_speech_thread()
@@ -131,7 +137,7 @@ class TextToSpeech:
             p.terminate()
         except Exception as e:
             if self.debug:
-                print(f"Error finding output device: {e}")
+                logger.info(f"Error finding output device: {e}")
         return None
 
     def _start_speech_thread(self):
@@ -159,7 +165,7 @@ class TextToSpeech:
                     loop.run_until_complete(self._synthesize_and_play(text))
                 except Exception as e:
                     if self.debug:
-                        print(f"TTS playback error: {e}")
+                        logger.info(f"TTS playback error: {e}")
                         import traceback
                         traceback.print_exc()
 
@@ -167,7 +173,7 @@ class TextToSpeech:
 
         except Exception as e:
             if self.debug:
-                print(f"Speech worker error: {e}")
+                logger.info(f"Speech worker error: {e}")
                 import traceback
                 traceback.print_exc()
 
@@ -196,7 +202,7 @@ class TextToSpeech:
 
             if not audio_data:
                 if self.debug:
-                    print("No audio data generated")
+                    logger.info("No audio data generated")
                 return
 
             # 音声再生
@@ -209,7 +215,7 @@ class TextToSpeech:
 
         except Exception as e:
             if self.debug:
-                print(f"Synthesis error: {e}")
+                logger.info(f"Synthesis error: {e}")
                 import traceback
                 traceback.print_exc()
 
@@ -281,7 +287,7 @@ class TextToSpeech:
 
         except Exception as e:
             if self.debug:
-                print(f"PyAudio playback error: {e}")
+                logger.info(f"PyAudio playback error: {e}")
                 import traceback
                 traceback.print_exc()
             # フォールバック
@@ -308,14 +314,14 @@ class TextToSpeech:
                 subprocess.run(['afplay', temp_file_path], check=True)
             except Exception as e:
                 if self.debug:
-                    print(f"afplay error: {e}, trying alternative method")
+                    logger.info(f"afplay error: {e}, trying alternative method")
                 # 他のプラットフォームではmpvなどを使用
                 try:
                     subprocess.run(['mpv', '--no-video', temp_file_path], check=True)
                 except Exception as e2:
                     if self.debug:
-                        print(f"mpv error: {e2}")
-                    print("Audio playback failed. Please install 'afplay' (macOS) or 'mpv'")
+                        logger.info(f"mpv error: {e2}")
+                    logger.info("Audio playback failed. Please install 'afplay' (macOS) or 'mpv'")
             finally:
                 # 一時ファイルを削除
                 try:
@@ -325,7 +331,7 @@ class TextToSpeech:
 
         except Exception as e:
             if self.debug:
-                print(f"Playback error: {e}")
+                logger.info(f"Playback error: {e}")
                 import traceback
                 traceback.print_exc()
 
@@ -350,11 +356,11 @@ class TextToSpeech:
             self.speech_queue.put(text)
 
             if self.debug:
-                print(f"TTS: Queued text: {text[:50]}...")
+                logger.info(f"TTS: Queued text: {text[:50]}...")
 
         except Exception as e:
             if self.debug:
-                print(f"TTS error: {e}")
+                logger.info(f"TTS error: {e}")
                 import traceback
                 traceback.print_exc()
 
