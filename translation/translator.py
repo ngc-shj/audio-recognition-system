@@ -18,6 +18,9 @@ from threading import Event
 # Logging
 from utils.logger import setup_logger
 
+# Setup logger
+logger = setup_logger(__name__)
+
 if sys.platform == 'darwin':
     try:
         from mlx_lm import load, generate
@@ -44,9 +47,6 @@ except ImportError:
     OPENAI_AVAILABLE = False
     logger.info("INFO: openai package not available. API server mode will not be supported.")
 
-
-# Setup logger
-logger = setup_logger(__name__)
 
 class Translation:
     """

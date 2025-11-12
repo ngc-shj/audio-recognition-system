@@ -7,6 +7,61 @@ from unittest.mock import Mock, patch, MagicMock
 import queue
 import threading
 import os
+import sys
+
+# Mock torch and transformers if not available (for CI/CD environments)
+try:
+    import torch
+except ImportError:
+    torch = Mock()
+    torch.cuda = Mock()
+    torch.cuda.is_available = Mock(return_value=False)
+    torch.bfloat16 = 'bfloat16'
+    torch.float16 = 'float16'
+    sys.modules['torch'] = torch
+
+try:
+    import transformers
+except ImportError:
+    transformers = Mock()
+    transformers.AutoModelForCausalLM = Mock()
+    transformers.AutoTokenizer = Mock()
+    transformers.logging = Mock()
+    sys.modules['transformers'] = transformers
+
+# Mock mlx_lm if not available
+try:
+    import mlx_lm
+except ImportError:
+    mlx_lm = Mock()
+    mlx_lm.load = Mock()
+    mlx_lm.generate = Mock()
+    sys.modules['mlx_lm'] = mlx_lm
+    sys.modules['mlx_lm.sample_utils'] = Mock()
+
+# Mock llama_cpp if not available
+try:
+    import llama_cpp
+except ImportError:
+    llama_cpp = Mock()
+    llama_cpp.Llama = Mock()
+    sys.modules['llama_cpp'] = llama_cpp
+
+# Mock openai if not available
+try:
+    import openai
+except ImportError:
+    openai = Mock()
+    openai.OpenAI = Mock()
+    sys.modules['openai'] = openai
+
+# Mock yaml if not available
+try:
+    import yaml
+except ImportError:
+    yaml = Mock()
+    yaml.safe_load = Mock(return_value={})
+    sys.modules['yaml'] = yaml
 
 from translation.translator import Translation
 

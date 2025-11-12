@@ -23,6 +23,10 @@ except ImportError:
     np = Mock()
     np.int16 = 'int16'
     np.ndarray = object
+    # Mock frombuffer to return an array-like object with dtype
+    mock_array = Mock()
+    mock_array.dtype = 'int16'
+    np.frombuffer = Mock(return_value=mock_array)
     sys.modules['numpy'] = np
 
 from audio.capture import AudioCapture
@@ -222,13 +226,22 @@ class TestAudioCapture(unittest.TestCase):
 class TestAudioCaptureIntegration(unittest.TestCase):
     """Integration tests for AudioCapture with real PyAudio (if available)"""
 
-    @unittest.skipUnless(
-        AudioCapture.get_input_device_index(None) is not None,
-        "No suitable audio device found"
-    )
     def test_real_device_detection(self):
         """Test detection works with real audio devices"""
-        device_index = AudioCapture.get_input_device_index(None)
+        # Skip if pyaudio is mocked
+        import pyaudio as test_pyaudio
+        if isinstance(test_pyaudio, Mock) or isinstance(getattr(test_pyaudio, 'PyAudio', None), Mock):
+            self.skipTest("PyAudio is mocked, skipping integration test")
+
+        try:
+            device_index = AudioCapture.get_input_device_index(None)
+        except TypeError:
+            # get_device_count() returned a Mock object
+            self.skipTest("PyAudio is mocked, skipping integration test")
+
+        if device_index is None:
+            self.skipTest("No suitable audio device found")
+
         self.assertIsNotNone(device_index)
         self.assertIsInstance(device_index, int)
         self.assertGreaterEqual(device_index, 0)
