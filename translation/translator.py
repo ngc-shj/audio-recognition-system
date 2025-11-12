@@ -14,12 +14,15 @@ import torch
 from collections import deque
 from typing import Dict, Optional
 
+# Logging
+from utils.logger import setup_logger
+
 if sys.platform == 'darwin':
     try:
         from mlx_lm import load, generate
         from mlx_lm.sample_utils import make_sampler, make_logits_processors
     except ImportError as e:
-        print(f"ERROR: Failed to import MLX sampling utilities: {e}", file=sys.stderr)
+        logger.info(f"ERROR: Failed to import MLX sampling utilities: {e}", file=sys.stderr)
         raise
 else:
     from transformers import AutoModelForCausalLM, AutoTokenizer, logging
@@ -30,7 +33,7 @@ try:
     LLAMA_CPP_AVAILABLE = True
 except ImportError:
     LLAMA_CPP_AVAILABLE = False
-    print("INFO: llama-cpp-python not available. GGUF models will not be supported.")
+    logger.info("INFO: llama-cpp-python not available. GGUF models will not be supported.")
 
 # OpenAI互換APIクライアントのサポート
 try:
@@ -38,8 +41,11 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
-    print("INFO: openai package not available. API server mode will not be supported.")
+    logger.info("INFO: openai package not available. API server mode will not be supported.")
 
+
+# Setup logger
+logger = setup_logger(__name__)
 
 class Translation:
     """
@@ -208,8 +214,8 @@ class Translation:
             f"bilingual_translation_log_{direction_suffix}_{current_time}.txt"
         )
         
-        print(f"翻訳ログ: {self.log_file_path}")
-        print(f"対訳ログ: {self.bilingual_log_file_path}")
+        logger.info(f"翻訳ログ: {self.log_file_path}")
+        logger.info(f"対訳ログ: {self.bilingual_log_file_path}")
 
     def load_model(self):
         """翻訳モデル/APIクライアントのロード"""
@@ -227,8 +233,8 @@ class Translation:
                         "Install it with: pip install openai"
                     )
 
-                print(f"APIサーバーに接続中: {self.api_base_url}")
-                print(f"使用モデル: {self.api_model}")
+                logger.info(f"APIサーバーに接続中: {self.api_base_url}")
+                logger.info(f"使用モデル: {self.api_model}")
 
                 # OpenAI互換APIクライアントの初期化
                 self.api_client = OpenAI(
@@ -242,12 +248,12 @@ class Translation:
                 self.model_type = 'api'
                 self.is_gpt_oss = False  # APIモードではGPT-OSSパース不要
 
-                print("APIクライアントの初期化完了")
+                logger.info("APIクライアントの初期化完了")
                 return
 
             # GGUF形式のモデルを使用するかどうかを判定
             if self.use_gguf and LLAMA_CPP_AVAILABLE:
-                print(f"翻訳モデルをロード中 (GGUF): {self.gguf_model_path}/{self.gguf_model_file}")
+                logger.info(f"翻訳モデルをロード中 (GGUF): {self.gguf_model_path}/{self.gguf_model_file}")
                 
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -278,10 +284,10 @@ class Translation:
                 
                 # GPT-OSSモデルかどうかを判定
                 self.is_gpt_oss = 'gpt-oss' in self.gguf_model_path.lower()
-                print(f"翻訳モデルのロード完了 (GGUF){' [GPT-OSS]' if self.is_gpt_oss else ''}")
+                logger.info(f"翻訳モデルのロード完了 (GGUF){' [GPT-OSS]' if self.is_gpt_oss else ''}")
             elif sys.platform == 'darwin':
                 # macOS: MLXを使用
-                print(f"翻訳モデルをロード中 (MLX): {self.model_path}")
+                logger.info(f"翻訳モデルをロード中 (MLX): {self.model_path}")
                 if torch.backends.mps.is_available():
                     torch.mps.empty_cache()
                 gc.collect()
@@ -290,10 +296,10 @@ class Translation:
                 
                 # GPT-OSSモデルかどうかを判定
                 self.is_gpt_oss = 'gpt-oss' in self.model_path.lower()
-                print(f"翻訳モデルのロード完了 (MLX){' [GPT-OSS]' if self.is_gpt_oss else ''}")
+                logger.info(f"翻訳モデルのロード完了 (MLX){' [GPT-OSS]' if self.is_gpt_oss else ''}")
             else:
                 # Linux/Windows: transformersを使用
-                print(f"翻訳モデルをロード中 (Transformers): {self.model_path}")
+                logger.info(f"翻訳モデルをロード中 (Transformers): {self.model_path}")
                 
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -314,15 +320,15 @@ class Translation:
                 
                 # GPT-OSSモデルかどうかを判定
                 self.is_gpt_oss = 'gpt-oss' in self.model_path.lower()
-                print(f"翻訳モデルのロード完了 (Transformers){' [GPT-OSS]' if self.is_gpt_oss else ''}")
+                logger.info(f"翻訳モデルのロード完了 (Transformers){' [GPT-OSS]' if self.is_gpt_oss else ''}")
 
         except Exception as e:
-            print(f"モデルの再ロード中にエラーが発生しました: {e}")
+            logger.info(f"モデルの再ロード中にエラーが発生しました: {e}")
             raise
 
     def translation_thread(self, is_running):
         """翻訳スレッドのメイン処理"""
-        print(f"翻訳スレッド開始 ({self.lang_config.source} → {self.lang_config.target})")
+        logger.info(f"翻訳スレッド開始 ({self.lang_config.source} → {self.lang_config.target})")
         
         while is_running.is_set():
             try:
@@ -332,7 +338,7 @@ class Translation:
                 while self.failed_translations and len(texts_to_translate) < self.batch_size:
                     texts_to_translate.append(self.failed_translations.pop(0))
                     if self.debug:
-                        print(f"\n再翻訳を試みます: {texts_to_translate[-1]}\n")
+                        logger.info(f"\n再翻訳を試みます: {texts_to_translate[-1]}\n")
 
                 # キューから新しいテキストを追加
                 while len(texts_to_translate) < self.batch_size:
@@ -345,7 +351,7 @@ class Translation:
                             texts_to_translate.append({'text': item, 'pair_id': None})
                     except queue.Empty:
                         if self.debug:
-                            print("翻訳キューが空です")
+                            logger.info("翻訳キューが空です")
                         break
                 
                 if not texts_to_translate:
@@ -371,6 +377,7 @@ class Translation:
                     if self.is_valid_translation(translated_text):
                         # Web UIモードではstdoutに出力しない
                         if not self.web_ui:
+                            # 翻訳結果はログではなく標準出力
                             print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
                         bilingual_texts.append(
@@ -386,14 +393,14 @@ class Translation:
                                 self.tts.speak(translated_text)
                             except Exception as e:
                                 if self.debug:
-                                    print(f"TTS error: {e}")
+                                    logger.info(f"TTS error: {e}")
 
                         # Web UIに送信（pair_idも送信）
                         if self.web_ui:
                             self.web_ui.send_translated_text(translated_text, processed_text, pair_id)
                     else:
                         if self.debug:
-                            print(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
+                            logger.info(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
                         self.handle_translation_error(item)
                 
                 # ファイルに記録（バッチ書き込みでI/O効率化）
@@ -410,15 +417,15 @@ class Translation:
                             with open(file_path, "a", encoding="utf-8") as f:
                                 f.write(content)
                     except IOError as e:
-                        print(f"ログ書き込みエラー: {e}", flush=True)
+                        logger.error(f"ログ書き込みエラー: {e}")
 
             except Exception as e:
-                print(f"\nエラー (翻訳スレッド): {e}", flush=True)
+                logger.error(f"エラー (翻訳スレッド): {e}")
                 time.sleep(0.5)
             
             self.check_model_reload()
         
-        print("翻訳スレッド終了")
+        logger.info("翻訳スレッド終了")
 
     def translate_text(self, text):
         """テキストを翻訳"""
@@ -454,10 +461,10 @@ class Translation:
                 response = completion.choices[0].message.content.strip()
 
                 if self.debug:
-                    print(f"[API] Response: {response[:200]}...")
+                    logger.info(f"[API] Response: {response[:200]}...")
 
             except Exception as e:
-                print(f"API呼び出しエラー: {e}")
+                logger.info(f"API呼び出しエラー: {e}")
                 # エラー時は空の応答を返す
                 response = ""
 
@@ -497,7 +504,7 @@ class Translation:
                 repeat_penalty=repeat_penalty,
             )
             if self.debug:
-                print(f"===> GGUF Output:\n{output}\n=== End of GGUF Output")
+                logger.info(f"===> GGUF Output:\n{output}\n=== End of GGUF Output")
 
             response = output['choices'][0]['message']['content'].strip()
             
@@ -527,7 +534,7 @@ class Translation:
         
         # デバッグ: 生成された生の出力を表示
         if self.debug and self.is_gpt_oss:
-            print(f"[GPT-OSS] Raw output: {response[:200]}...")
+            logger.info(f"[GPT-OSS] Raw output: {response[:200]}...")
         
         # GPT-OSSの場合はチャンネルタグをパース
         if self.is_gpt_oss:
@@ -547,7 +554,7 @@ class Translation:
         
         if self.consecutive_errors >= self.max_consecutive_errors:
             if self.debug:
-                print("連続エラーが発生しました。モデルを再ロードします。")
+                logger.info("連続エラーが発生しました。モデルを再ロードします。")
             self.load_model()
             self.consecutive_errors = 0
         
@@ -562,7 +569,7 @@ class Translation:
         current_time = time.time()
         if current_time - self.last_reload_time > self.reload_interval:
             if self.debug:
-                print("定期的なモデル再ロードを実行します。")
+                logger.info("定期的なモデル再ロードを実行します。")
             self.load_model()
             self.last_reload_time = current_time
 
@@ -598,7 +605,7 @@ class Translation:
         if final_match:
             result = final_match.group(1).strip()
             if self.debug:
-                print(f"[GPT-OSS] Final channel extracted: {result[:100]}...")
+                logger.info(f"[GPT-OSS] Final channel extracted: {result[:100]}...")
             return result
 
         # finalチャンネルが見つからない場合、すべてのチャンネルタグを削除
@@ -610,7 +617,7 @@ class Translation:
         clean_output = re.sub(r'\s+', ' ', clean_output).strip()
 
         if self.debug:
-            print(f"[GPT-OSS] Fallback cleaning applied: {clean_output[:100]}...")
+            logger.info(f"[GPT-OSS] Fallback cleaning applied: {clean_output[:100]}...")
 
         # クリーニング後も空の場合はエラーメッセージ
         return clean_output if clean_output else ""

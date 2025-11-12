@@ -3,6 +3,12 @@ import time
 import threading
 import psutil
 
+# Logging
+from utils.logger import setup_logger
+
+# Setup logger
+logger = setup_logger(__name__)
+
 class ResourceManager:
     def __init__(self, config_manager=None, min_threads: int = 2, max_threads: int = 8):
         if config_manager and hasattr(config_manager, 'resources'):
@@ -39,7 +45,7 @@ class ResourceManager:
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
 
-            print(f"CPU使用率: {cpu_percent:.1f}% | "
+            logger.info(f"CPU使用率: {cpu_percent:.1f}% | "
                   f"メモリ使用率: {memory_percent:.1f}% "
                   f"({memory.used / (1024**3):.1f}GB / {memory.total / (1024**3):.1f}GB)")
 
@@ -63,15 +69,15 @@ class ResourceManager:
     def print_system_info(self):
         """システム情報を表示"""
         info = self.get_system_info()
-        print("\n" + "="*50)
-        print("システム情報")
-        print("="*50)
-        print(f"プラットフォーム: {info['platform']}")
-        print(f"CPUコア数: {info['cpu_count']}")
-        print(f"CPU使用率: {info['cpu_percent']:.1f}%")
-        print(f"メモリ合計: {info['memory_total_gb']:.1f} GB")
-        print(f"メモリ利用可能: {info['memory_available_gb']:.1f} GB")
-        print(f"メモリ使用率: {info['memory_percent']:.1f}%")
-        print(f"スレッド設定: {info['min_threads']}-{info['max_threads']} (現在: {info['current_threads']})")
-        print("="*50 + "\n")
+        logger.info("\n" + "="*50)
+        logger.info("システム情報")
+        logger.info("="*50)
+        logger.info(f"プラットフォーム: {info['platform']}")
+        logger.info(f"CPUコア数: {info['cpu_count']}")
+        logger.info(f"CPU使用率: {info['cpu_percent']:.1f}%")
+        logger.info(f"メモリ合計: {info['memory_total_gb']:.1f} GB")
+        logger.info(f"メモリ利用可能: {info['memory_available_gb']:.1f} GB")
+        logger.info(f"メモリ使用率: {info['memory_percent']:.1f}%")
+        logger.info(f"スレッド設定: {info['min_threads']}-{info['max_threads']} (現在: {info['current_threads']})")
+        logger.info("="*50 + "\n")
 

@@ -15,6 +15,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
+# Logging
+from utils.logger import setup_logger
+
+# Setup logger
+logger = setup_logger(__name__)
+
 
 @dataclass
 class DynamicBufferConfig:
@@ -173,9 +179,9 @@ class ConfigManager:
     
     使用例:
         config = ConfigManager()
-        print(config.audio.sample_rate)
-        print(config.translation.batch_size)
-        print(config.language.source)
+        logger.info(config.audio.sample_rate)
+        logger.info(config.translation.batch_size)
+        logger.info(config.language.source)
     """
     
     def __init__(self, config_path: Optional[str] = None, profile: str = "production"):
@@ -245,10 +251,10 @@ class ConfigManager:
                 target_path = example_path.replace('.example', '')
                 try:
                     shutil.copy2(example_path, target_path)
-                    print(f"初回起動: {example_path} を {target_path} にコピーしました。")
+                    logger.info(f"初回起動: {example_path} を {target_path} にコピーしました。")
                     return target_path
                 except Exception as e:
-                    print(f"警告: 設定ファイルのコピーに失敗しました: {e}")
+                    logger.warning(f" 設定ファイルのコピーに失敗しました: {e}")
 
         raise FileNotFoundError(
             "設定ファイルが見つかりません。config.yaml または config.yaml.example を以下のパスに配置してください:\n" +
@@ -260,7 +266,7 @@ class ConfigManager:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
-            print(f"設定ファイルを読み込みました: {config_path}")
+            logger.info(f"設定ファイルを読み込みました: {config_path}")
             return config
         except Exception as e:
             raise RuntimeError(f"設定ファイルの読み込みに失敗しました: {e}")
@@ -270,7 +276,7 @@ class ConfigManager:
         if 'profiles' in self._config and self.profile in self._config['profiles']:
             profile_config = self._config['profiles'][self.profile]
             self._deep_merge(self._config, profile_config)
-            print(f"プロファイルを適用しました: {self.profile}")
+            logger.info(f"プロファイルを適用しました: {self.profile}")
     
     def _deep_merge(self, base: Dict, override: Dict):
         """辞書を再帰的にマージ"""
@@ -659,58 +665,58 @@ class ConfigManager:
 
 # 使用例とテスト
 if __name__ == "__main__":
-    print("=== ConfigManager (クリーン統合版) のテスト ===\n")
+    logger.info("=== ConfigManager (クリーン統合版) のテスト ===\n")
     
     # 初期化
     config = ConfigManager(profile="development")
     
-    print(f"基本情報:")
-    print(f"  プロファイル: {config.profile}")
-    print(f"  プラットフォーム: {config.platform}")
+    logger.info(f"基本情報:")
+    logger.info(f"  プロファイル: {config.profile}")
+    logger.info(f"  プラットフォーム: {config.platform}")
     
-    print("\n🎵 音声設定:")
+    logger.info("\n🎵 音声設定:")
     audio = config.audio
-    print(f"  サンプルレート: {audio.sample_rate} Hz")
-    print(f"  チャンネル: {audio.channels}")
-    print(f"  フォーマット: {audio.format_str}")
-    print(f"  バッファサイズ: {audio.buffer_size}")
-    print(f"  NumPy dtype: {audio.numpy_dtype}")
+    logger.info(f"  サンプルレート: {audio.sample_rate} Hz")
+    logger.info(f"  チャンネル: {audio.channels}")
+    logger.info(f"  フォーマット: {audio.format_str}")
+    logger.info(f"  バッファサイズ: {audio.buffer_size}")
+    logger.info(f"  NumPy dtype: {audio.numpy_dtype}")
     
-    print("\nモデル設定:")
+    logger.info("\nモデル設定:")
     asr_model = config.get_model_config('asr')
-    print(f"  ASRモデル: {asr_model.model_path}")
-    print(f"  モデルサイズ: {asr_model.model_size}")
+    logger.info(f"  ASRモデル: {asr_model.model_path}")
+    logger.info(f"  モデルサイズ: {asr_model.model_size}")
     
     trans_model = config.get_model_config('translation')
-    print(f"  翻訳モデル: {trans_model.model_path}")
+    logger.info(f"  翻訳モデル: {trans_model.model_path}")
     
-    print(f"  GGUFモデル使用: {trans_model.gguf.enabled}")
+    logger.info(f"  GGUFモデル使用: {trans_model.gguf.enabled}")
     if trans_model.gguf.enabled:
-        print(f"    GGUFモデルパス: {trans_model.gguf.model_path}")
-        print(f"    GGUFモデルファイル: {trans_model.gguf.model_file}")
-        print(f"    コンテキストウィンドウ: {trans_model.gguf.n_ctx}")
-        print(f"    GPUレイヤー数: {trans_model.gguf.n_gpu_layers}")
-        print(f"    CPUスレッド数: {trans_model.gguf.n_threads}")
+        logger.info(f"    GGUFモデルパス: {trans_model.gguf.model_path}")
+        logger.info(f"    GGUFモデルファイル: {trans_model.gguf.model_file}")
+        logger.info(f"    コンテキストウィンドウ: {trans_model.gguf.n_ctx}")
+        logger.info(f"    GPUレイヤー数: {trans_model.gguf.n_gpu_layers}")
+        logger.info(f"    CPUスレッド数: {trans_model.gguf.n_threads}")
     
-    print("\n翻訳設定:")
+    logger.info("\n翻訳設定:")
     trans = config.translation
-    print(f"  有効: {trans.enabled}")
-    print(f"  バッチサイズ: {trans.batch_size}")
-    print(f"  コンテキストウィンドウ: {trans.context_window_size}")
+    logger.info(f"  有効: {trans.enabled}")
+    logger.info(f"  バッチサイズ: {trans.batch_size}")
+    logger.info(f"  コンテキストウィンドウ: {trans.context_window_size}")
     
-    print("\n言語設定:")
+    logger.info("\n言語設定:")
     lang = config.language
-    print(f"  {lang.source} → {lang.target}")
+    logger.info(f"  {lang.source} → {lang.target}")
     
-    print("\n出力設定:")
+    logger.info("\n出力設定:")
     output = config.output
-    print(f"  ディレクトリ: {output.directory}")
-    print(f"  音声認識ログ: {output.recognized_audio}")
-    print(f"  翻訳ログ: {output.translated_text}")
+    logger.info(f"  ディレクトリ: {output.directory}")
+    logger.info(f"  音声認識ログ: {output.recognized_audio}")
+    logger.info(f"  翻訳ログ: {output.translated_text}")
     
-    print("\nリソース設定:")
+    logger.info("\nリソース設定:")
     res = config.resources
-    print(f"  スレッド: {res.min_threads}-{res.max_threads}")
+    logger.info(f"  スレッド: {res.min_threads}-{res.max_threads}")
     
-    print("\nすべての設定が型安全に取得できます！")
+    logger.info("\nすべての設定が型安全に取得できます！")
 

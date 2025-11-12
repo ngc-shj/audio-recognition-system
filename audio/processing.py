@@ -11,9 +11,15 @@ from collections import deque
 import noisereduce as nr
 from scipy import signal
 
+# Logging
+from utils.logger import setup_logger
+
 # 共通の音声正規化関数
 from utils.audio_normalization import normalize_audio
 
+
+# Setup logger
+logger = setup_logger(__name__)
 
 class AudioProcessing:
     """
@@ -69,7 +75,7 @@ class AudioProcessing:
         last_voice_activity = time.time()
         buffer_start_time = time.time()
 
-        print("音声処理スレッド開始")
+        logger.info("音声処理スレッド開始")
 
         while is_running.is_set():
             try:
@@ -146,9 +152,9 @@ class AudioProcessing:
                         buffer.clear()
                         buffer_start_time = current_time
             except Exception as e:
-                print(f"\nエラー (処理スレッド): {e}", flush=True)
+                logger.error(f"エラー (処理スレッド): {e}")
 
-        print("音声処理スレッド終了")
+        logger.info("音声処理スレッド終了")
 
     def has_voice_activity(self, audio_data):
         """

@@ -11,6 +11,12 @@ from typing import Optional
 from datetime import datetime
 import requests
 
+# Logging
+from utils.logger import setup_logger
+
+
+# Setup logger
+logger = setup_logger(__name__)
 
 class WebUIBridge:
     """
@@ -121,9 +127,9 @@ class WebUIBridge:
                 timeout=1.0  # タイムアウトを短く設定
             )
             if response.status_code != 200:
-                print(f"Failed to broadcast message: {response.status_code}")
+                logger.info(f"Failed to broadcast message: {response.status_code}")
         except requests.exceptions.RequestException as e:
             # Web UIサーバーが起動していない場合などは無視
             pass
         except Exception as e:
-            print(f"Error broadcasting message: {e}")
+            logger.info(f"Error broadcasting message: {e}")
