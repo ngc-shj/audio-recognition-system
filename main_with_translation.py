@@ -224,10 +224,11 @@ def main():
         # =====================================
         # 設定の表示
         # =====================================
-        print(f"\nシステム設定:")
-        print(f"   言語: {config.language.source} → {config.language.target}")
-        print(f"   音声: {config.audio.sample_rate}Hz, {config.audio.channels}ch, {config.audio.format_str}")
-        print(f"   ASRモデル: {config.get_model_config('asr').model_size}")
+        logger.info("")
+        logger.info("システム設定:")
+        logger.info(f"   言語: {config.language.source} → {config.language.target}")
+        logger.info(f"   音声: {config.audio.sample_rate}Hz, {config.audio.channels}ch, {config.audio.format_str}")
+        logger.info(f"   ASRモデル: {config.get_model_config('asr').model_size}")
         # 翻訳モデルの最終的な「実行対象」を ModelConfig / GGUFConfig から決定（config_manager に準拠）
         tconf = config.get_model_config('translation')  # ModelConfig
 
@@ -240,41 +241,41 @@ def main():
             gfile = (tconf.gguf.model_file or "").strip()
             if repo.lower().endswith(".gguf") and not gfile:
                 p = Path(repo)
-                print(f"   翻訳モデル: {p.stem}  [GGUF]")
-                print(f"   参照元   : {p}")
+                logger.info(f"   翻訳モデル: {p.stem}  [GGUF]")
+                logger.info(f"   参照元   : {p}")
             else:
                 if _is_hub_id(repo):
                     name = Path(gfile).stem or repo
                     src  = f"hf://{repo.rstrip('/')}/{gfile}" if gfile else f"hf://{repo}"
-                    print(f"   翻訳モデル: {name}  [GGUF]")
-                    print(f"   参照元   : {src}")
+                    logger.info(f"   翻訳モデル: {name}  [GGUF]")
+                    logger.info(f"   参照元   : {src}")
                 else:
                     p = Path(repo) / gfile if gfile else Path(repo)
                     name = Path(gfile).stem if gfile else (p.stem or p.name)
-                    print(f"   翻訳モデル: {name}  [GGUF]")
-                    print(f"   参照元   : {p}")
+                    logger.info(f"   翻訳モデル: {name}  [GGUF]")
+                    logger.info(f"   参照元   : {p}")
             # 実行パラメータ表示（見える化）
-            print(f"   n_ctx    : {tconf.gguf.n_ctx}")
-            print(f"   n_gpu_layers: {tconf.gguf.n_gpu_layers}")
-            print(f"   n_threads: {tconf.gguf.n_threads}")
+            logger.info(f"   n_ctx    : {tconf.gguf.n_ctx}")
+            logger.info(f"   n_gpu_layers: {tconf.gguf.n_gpu_layers}")
+            logger.info(f"   n_threads: {tconf.gguf.n_threads}")
         else:
             # 通常（HF/Local）の model_path は ModelConfig.model_path から
             m = tconf.model_path
             if not m:
-                print("   翻訳モデル: （未設定）")
-                print("   参照元   : （未設定）")
+                logger.info("   翻訳モデル: （未設定）")
+                logger.info("   参照元   : （未設定）")
             else:
                 s = str(m)
                 if _is_hub_id(s):
-                    print(f"   翻訳モデル: {s}  [HF Hub]")
-                    print(f"   参照元   : hf://{s}")
+                    logger.info(f"   翻訳モデル: {s}  [HF Hub]")
+                    logger.info(f"   参照元   : hf://{s}")
                 else:
                     p = Path(s)
-                    print(f"   翻訳モデル: {p.name or s}  [Local]")
-                    print(f"   参照元   : {p}")
+                    logger.info(f"   翻訳モデル: {p.name or s}  [Local]")
+                    logger.info(f"   参照元   : {p}")
 
-        print(f"   バッチサイズ: {config.translation.batch_size}")
-        print(f"   出力先: {config.output.directory}")
+        logger.info(f"   バッチサイズ: {config.translation.batch_size}")
+        logger.info(f"   出力先: {config.output.directory}")
         
         debug_mode = config.is_debug_enabled()
         
@@ -293,7 +294,8 @@ def main():
         # =====================================
         # コンポーネントの初期化
         # =====================================
-        print(f"\nコンポーネントを初期化しています...")
+        logger.info("")
+        logger.info("コンポーネントを初期化しています...")
         
         # 直接AudioConfigデータクラスを渡す
         audio_capture = AudioCapture(config.audio, audio_queue, config.audio)
@@ -306,12 +308,13 @@ def main():
                     server_url=args.web_ui_url,
                     enabled=True
                 )
-                print(f"\nWeb UI連携を有効化しました: {args.web_ui_url}")
+                logger.info("")
+                logger.info("Web UI連携を有効化しました: {args.web_ui_url}")
                 # Note: Web UIサーバー側で"running"ステータスを送信するため、
                 # ここでは初期ステータスを送信しない
                 # web_ui.send_status("stopped", "System initialized")
             except Exception as e:
-                print(f"Warning: Web UI Bridge initialization failed: {e}")
+                logger.warning(f" Web UI Bridge initialization failed: {e}")
                 web_ui = None
 
         speech_recognition = SpeechRecognition(
@@ -333,7 +336,7 @@ def main():
                     target_language=config.language.target
                 )
             except Exception as e:
-                print(f"Warning: TTS initialization failed: {e}")
+                logger.warning(f" TTS initialization failed: {e}")
                 tts = None
 
         translation = Translation(
@@ -360,10 +363,12 @@ def main():
         _system_instance.run()
         
     except FileNotFoundError as e:
-        print(f"\nエラー: {e}")
+        logger.error("")
+        logger.error(f"エラー: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n予期しないエラーが発生しました: {e}")
+        logger.error("")
+        logger.error(f"予期しないエラーが発生しました: {e}")
         if args.debug:
             import traceback
             traceback.print_exc()
