@@ -56,6 +56,7 @@ class ServerState:
         self.is_recognition_running = False
         self.recognition_system = None  # AudioTranscriptionSystem instance
         self.config_path = "config.yaml"  # Config file path
+        self.config_manager = None  # ConfigManager instance (set during recognition start)
 
 server_state = ServerState()
 
@@ -351,6 +352,14 @@ async def update_config(request: ConfigUpdateRequest):
         with open(server_state.config_path, 'w', encoding='utf-8') as f:
             yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
+        # Reload ConfigManager if available (for realtime config changes)
+        if server_state.config_manager:
+            try:
+                server_state.config_manager.reload()
+                logger.info("ConfigManager reloaded for realtime config changes")
+            except Exception as e:
+                logger.warning(f"Failed to reload ConfigManager: {e}")
+
         # Broadcast config change to all clients
         await manager.broadcast({
             "type": "config_updated",
@@ -491,13 +500,17 @@ def run_recognition_system(config_path: str = "config.yaml",
             # メイン関数を実行（ブロッキング）
             # システムインスタンスは別スレッドで定期的にチェック
             def check_and_store_instance():
-                """定期的に_system_instanceをチェックしてserver_stateに保存"""
+                """定期的に_system_instanceと_config_manager_instanceをチェックしてserver_stateに保存"""
                 import time
                 for _ in range(50):  # 最大5秒待機
                     time.sleep(0.1)
                     if hasattr(main_module, '_system_instance') and main_module._system_instance:
                         server_state.recognition_system = main_module._system_instance
                         logger.info("System instance captured for stop control")
+                    if hasattr(main_module, '_config_manager_instance') and main_module._config_manager_instance:
+                        server_state.config_manager = main_module._config_manager_instance
+                        logger.info("Config manager instance captured for reload support")
+                    if server_state.recognition_system and server_state.config_manager:
                         break
 
             # インスタンスキャプチャ用スレッドを開始

@@ -374,15 +374,18 @@ async function saveAdvancedSettings() {
 
     // Determine if any settings that require restart were changed
     const restartRequiredKeys = [
-        'tts.rate', 'tts.volume', 'tts.pitch',
+        // Model settings (require restart)
         'models.translation.darwin.model_path',
         'models.asr.darwin.model_path', 'models.asr.darwin.model_size',
         'models.translation.api.enabled', 'models.translation.api.base_url', 'models.translation.api.model',
+        // Device settings (require restart)
         'audio.input_device', 'tts.output_device',
+        // Voice detection (require restart)
         'audio.voice_detection.silence_threshold',
-        'audio.dynamic_buffer.medium_pause', 'audio.dynamic_buffer.long_pause',
-        'translation.generation.darwin.temperature', 'translation.generation.default.temperature',
-        'translation.context.window_size'
+        'audio.dynamic_buffer.medium_pause', 'audio.dynamic_buffer.long_pause'
+        // TTS settings and Translation parameters are now realtime!
+        // Removed: 'tts.rate', 'tts.volume', 'tts.pitch'
+        // Removed: 'translation.generation.darwin.temperature', 'translation.generation.default.temperature', 'translation.context.window_size'
     ];
 
     const changedRestartRequired = Object.keys(updates).some(key => restartRequiredKeys.includes(key));
@@ -401,9 +404,9 @@ async function saveAdvancedSettings() {
 
             // Show appropriate message based on what was changed
             if (changedRestartRequired) {
-                showToast('✅ Settings saved successfully! Restart recognition for changes to take effect.', 'info', 5000);
+                showToast('✅ Settings saved! Restart recognition for model/device/voice detection changes to take effect.', 'info', 5000);
             } else {
-                showToast('✅ Display settings saved!', 'info', 2000);
+                showToast('✅ Settings saved and applied immediately!', 'info', 2000);
             }
 
             // Reload full config to reflect changes

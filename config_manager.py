@@ -192,19 +192,20 @@ class ConfigManager:
         """
         self.profile = profile
         self.platform = self._detect_platform()
-        
+
         # 設定ファイルの読み込み
         if config_path is None:
             config_path = self._find_default_config()
-        
+
+        self.config_path = config_path  # Store for reload()
         self._config = self._load_config(config_path)
-        
+
         # プロファイルの適用
         self._apply_profile()
-        
+
         # 環境変数による上書き
         self._apply_env_overrides()
-        
+
         # 設定データクラスの初期化（遅延ロード用のキャッシュ）
         self._audio = None
         self._translation = None
@@ -419,22 +420,44 @@ class ConfigManager:
 
         return self._audio
     
+    def reload(self):
+        """
+        設定ファイルを再読み込み
+
+        実行中に config.yaml が更新された場合、この関数を呼び出すことで
+        新しい設定を反映できます。TTS設定や翻訳パラメータなど、
+        リアルタイム反映可能な設定に使用します。
+        """
+        # 設定ファイルを再読み込み
+        self._config = self._load_config(self.config_path)
+
+        # プロファイルと環境変数を再適用
+        self._apply_profile()
+        self._apply_env_overrides()
+
+        # キャッシュをクリア（次回アクセス時に再生成）
+        self._audio = None
+        self._translation = None
+        self._output = None
+        self._language = None
+        self._resources = None
+
     def get_model_config(self, model_type: str) -> ModelConfig:
         """
         モデル設定を取得
-        
+
         Args:
             model_type: 'asr' または 'translation'
-        
+
         Returns:
             ModelConfig
         """
         # models.asr または models.translation を取得
         if 'models' not in self._config or model_type not in self._config['models']:
             return ModelConfig(model_path=None, model_size=None)
-        
+
         model_config = self._config['models'][model_type]
-        
+
         # プラットフォーム固有の設定を取得
         if self.platform in model_config:
             platform_config = model_config[self.platform]
@@ -442,7 +465,7 @@ class ConfigManager:
             platform_config = model_config['default']
         else:
             platform_config = {}
-        
+
         # GGUF設定を取得
         gguf_config = GGUFConfig()
         if 'gguf' in model_config:
