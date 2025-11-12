@@ -289,37 +289,22 @@ export function setupAdvancedSettings() {
     const showTimestampCheckbox = document.getElementById('showTimestamp');
     const showLanguageCheckbox = document.getElementById('showLanguage');
 
-    console.log('Display Options setup:');
-    console.log('- showTimestamp element:', showTimestampCheckbox);
-    console.log('- showLanguage element:', showLanguageCheckbox);
-
     if (showTimestampCheckbox) {
-        console.log('Setting up showTimestamp event listener');
         showTimestampCheckbox.addEventListener('change', () => {
-            console.log('showTimestamp changed, re-rendering pairs...');
             // Re-render all existing text pairs
             textPairs.forEach(pair => {
                 updatePairDisplay(pair);
             });
         });
-    } else {
-        console.warn('showTimestamp checkbox not found!');
     }
 
     if (showLanguageCheckbox) {
-        console.log('Setting up showLanguage event listener');
-        showLanguageCheckbox.addEventListener('change', (e) => {
-            console.log('showLanguage changed:', e.target.checked);
-            console.log('textPairs size:', textPairs.size);
+        showLanguageCheckbox.addEventListener('change', () => {
             // Re-render all existing text pairs
-            textPairs.forEach((pair, pairId) => {
-                console.log('Updating pair:', pairId);
+            textPairs.forEach(pair => {
                 updatePairDisplay(pair);
             });
-            console.log('Done updating all pairs');
         });
-    } else {
-        console.warn('showLanguage checkbox not found!');
     }
 
     // Refresh devices button
