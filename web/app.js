@@ -117,11 +117,12 @@ function connectWebSocket() {
     console.log('Connecting to WebSocket:', wsUrl);
     ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
+    ws.onopen = async () => {
         console.log('WebSocket connected');
         isConnected = true;
-        updateStatus('connected', 'Connected');
-        startBtn.disabled = false;
+
+        // WebSocket接続後に認識ステータスを再確認してボタン状態を適切に設定
+        await checkRecognitionStatus();
 
         // Ping/pongで接続維持
         setInterval(() => {
@@ -580,14 +581,25 @@ async function checkRecognitionStatus() {
         if (response.ok) {
             const status = await response.json();
             if (status.recognition_active) {
+                // 認識実行中
                 isRunning = true;
                 updateStatus('running', 'Recognition Running');
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
+            } else {
+                // 認識停止中
+                isRunning = false;
+                updateStatus('connected', 'Connected');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
             }
         }
     } catch (error) {
         console.error('Failed to check recognition status:', error);
+        // エラー時は接続されていない状態にする
+        updateStatus('disconnected', 'Disconnected');
+        startBtn.disabled = true;
+        stopBtn.disabled = true;
     }
 }
 
@@ -689,8 +701,30 @@ function populateAdvancedSettings(config) {
     // (loadAudioDevicesで処理)
 }
 
+// Setup platform-dependent UI (ASR model fields)
+function setupPlatformDependentUI() {
+    // Detect macOS using userAgent (more reliable than deprecated navigator.platform)
+    const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+
+    const asrModelPathGroup = document.getElementById('asrModelPathGroup');
+    const asrModelSizeGroup = document.getElementById('asrModelSizeGroup');
+
+    if (isMac) {
+        // Show Path field for macOS (MLX format)
+        if (asrModelPathGroup) asrModelPathGroup.style.display = 'block';
+        if (asrModelSizeGroup) asrModelSizeGroup.style.display = 'none';
+    } else {
+        // Show Size field for Linux/Windows (auto-download)
+        if (asrModelPathGroup) asrModelPathGroup.style.display = 'none';
+        if (asrModelSizeGroup) asrModelSizeGroup.style.display = 'block';
+    }
+}
+
 // Setup advanced settings event listeners
 function setupAdvancedSettings() {
+    // Setup platform-dependent UI first
+    setupPlatformDependentUI();
+
     // API enabled checkbox toggle (exclusive with local model)
     document.getElementById('apiEnabled').addEventListener('change', (e) => {
         const apiServerSettings = document.getElementById('apiServerSettings');
@@ -742,15 +776,16 @@ function setupAdvancedSettings() {
 
 // Save advanced settings to server
 async function saveAdvancedSettings() {
+    // Detect platform to save only the appropriate ASR model field
+    const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+
     const updates = {
         // TTS Settings
         'tts.rate': document.getElementById('ttsRate').value,
         'tts.volume': document.getElementById('ttsVolume').value,
         'tts.pitch': document.getElementById('ttsPitch').value,
 
-        // Model Settings
-        'models.asr.darwin.model_path': document.getElementById('asrModelPath').value,
-        'models.asr.darwin.model_size': document.getElementById('asrModelSize').value,
+        // Model Settings - only save the visible ASR field based on platform
         'models.translation.darwin.model_path': document.getElementById('translationModelPath').value,
 
         // API Settings
@@ -772,6 +807,13 @@ async function saveAdvancedSettings() {
         'translation.generation.default.temperature': parseFloat(document.getElementById('temperature').value),
         'translation.context.window_size': parseInt(document.getElementById('contextWindowSize').value)
     };
+
+    // Add platform-specific ASR model field
+    if (isMac) {
+        updates['models.asr.darwin.model_path'] = document.getElementById('asrModelPath').value;
+    } else {
+        updates['models.asr.darwin.model_size'] = document.getElementById('asrModelSize').value;
+    }
 
     try {
         const response = await fetch('/api/config/update', {
@@ -851,10 +893,51 @@ async function loadAudioDevices() {
                 outputSelect.appendChild(option);
             });
 
+            // ループバック防止：input/output device選択時の相互排他チェック
+            setupDeviceSelectionValidation();
+
         }
     } catch (error) {
         console.error('Failed to load audio devices:', error);
     }
+}
+
+// デバイス選択の検証（ループバック防止）
+function setupDeviceSelectionValidation() {
+    const inputSelect = document.getElementById('inputDevice');
+    const outputSelect = document.getElementById('outputDevice');
+
+    if (!inputSelect || !outputSelect) return;
+
+    // Input device変更時
+    inputSelect.addEventListener('change', () => {
+        const inputDevice = inputSelect.value;
+        const outputDevice = outputSelect.value;
+
+        // 両方が選択されていて、かつ同じデバイスの場合
+        if (inputDevice && outputDevice && inputDevice === outputDevice) {
+            showToast('⚠️ Warning: Input and Output devices are the same. This may cause audio feedback loop!', 'warning', 5000);
+
+            // Output deviceを自動的にDefaultに戻す
+            outputSelect.value = '';
+            showToast('Output device reset to Default to prevent feedback loop.', 'info', 3000);
+        }
+    });
+
+    // Output device変更時
+    outputSelect.addEventListener('change', () => {
+        const inputDevice = inputSelect.value;
+        const outputDevice = outputSelect.value;
+
+        // 両方が選択されていて、かつ同じデバイスの場合
+        if (inputDevice && outputDevice && inputDevice === outputDevice) {
+            showToast('⚠️ Warning: Input and Output devices are the same. This may cause audio feedback loop!', 'warning', 5000);
+
+            // Input deviceを自動的にDefaultに戻す
+            inputSelect.value = '';
+            showToast('Input device reset to Default to prevent feedback loop.', 'info', 3000);
+        }
+    });
 }
 
 // ページロード時に設定を読み込んでから接続

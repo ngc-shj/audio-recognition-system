@@ -552,14 +552,14 @@
 
             <!-- Model Settings -->
             <div class="settings-section">
-                <div class="settings-group">
-                    <label for="asrModelPath">ASR Model Path (Whisper):</label>
+                <div class="settings-group" id="asrModelPathGroup">
+                    <label for="asrModelPath">ASR Model Path (Whisper) - macOS:</label>
                     <input type="text" id="asrModelPath" value="mlx-community/whisper-large-v3-turbo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9rem;">
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">HuggingFace model ID or local path</p>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">HuggingFace model ID or local path (MLX format)</p>
                 </div>
 
-                <div class="settings-group">
-                    <label for="asrModelSize">ASR Model Size:</label>
+                <div class="settings-group" id="asrModelSizeGroup">
+                    <label for="asrModelSize">ASR Model Size - Linux/Windows:</label>
                     <select id="asrModelSize" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
                         <option value="tiny">tiny (fastest, lower accuracy)</option>
                         <option value="base">base (fast)</option>
@@ -568,6 +568,7 @@
                         <option value="large">large (best quality)</option>
                         <option value="large-v3-turbo" selected>large-v3-turbo (recommended)</option>
                     </select>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Auto-download from Hugging Face</p>
                 </div>
 
                 <div class="settings-group" style="margin-top: 20px;">
