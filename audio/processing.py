@@ -152,7 +152,7 @@ class AudioProcessing:
                         buffer.clear()
                         buffer_start_time = current_time
             except Exception as e:
-                logger.info(f"\nエラー (処理スレッド): {e}")
+                logger.error(f"エラー (処理スレッド): {e}")
 
         logger.info("音声処理スレッド終了")
 

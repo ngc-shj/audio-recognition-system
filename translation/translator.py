@@ -377,7 +377,8 @@ class Translation:
                     if self.is_valid_translation(translated_text):
                         # Web UIモードではstdoutに出力しない
                         if not self.web_ui:
-                            logger.info(f"\n翻訳: {translated_text}\n")
+                            # 翻訳結果はログではなく標準出力
+                            print(f"\n翻訳: {translated_text}\n")
                         translated_texts.append(translated_text)
                         bilingual_texts.append(
                             f"原文 ({self.lang_config.source}): {processed_text}\n"
@@ -416,10 +417,10 @@ class Translation:
                             with open(file_path, "a", encoding="utf-8") as f:
                                 f.write(content)
                     except IOError as e:
-                        logger.info(f"ログ書き込みエラー: {e}")
+                        logger.error(f"ログ書き込みエラー: {e}")
 
             except Exception as e:
-                logger.info(f"\nエラー (翻訳スレッド): {e}")
+                logger.error(f"エラー (翻訳スレッド): {e}")
                 time.sleep(0.5)
             
             self.check_model_reload()

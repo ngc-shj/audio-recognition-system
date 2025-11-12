@@ -168,7 +168,7 @@ class SpeechRecognition:
                     log_file.write(text + "\n")
             self._log_buffer.clear()
         except IOError as e:
-            logger.info(f"ログ書き込みエラー: {e}")
+            logger.error(f"ログ書き込みエラー: {e}")
 
     def close(self):
         """クローズ時に残りのバッファをフラッシュ"""
@@ -200,6 +200,6 @@ class SpeechRecognition:
             line = ' '.join(buffer)
             final_output += line
 
-        # コンソールに出力
-        logger.info(final_output)
+        # コンソールに出力（認識結果はログではなく標準出力）
+        print(final_output, end='', flush=True)
 
