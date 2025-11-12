@@ -126,7 +126,7 @@ class SpeechRecognition:
                 if self.debug:
                     logger.info("認識キューが空です")
             except Exception as e:
-                logger.info(f"\nエラー (認識スレッド): {e}", flush=True)
+                logger.error(f"エラー (認識スレッド): {e}")
 
         # スレッド終了時に残りのバッファをフラッシュ
         self._flush_log_buffer()
@@ -168,7 +168,7 @@ class SpeechRecognition:
                     log_file.write(text + "\n")
             self._log_buffer.clear()
         except IOError as e:
-            logger.info(f"ログ書き込みエラー: {e}", flush=True)
+            logger.info(f"ログ書き込みエラー: {e}")
 
     def close(self):
         """クローズ時に残りのバッファをフラッシュ"""
@@ -201,5 +201,5 @@ class SpeechRecognition:
             final_output += line
 
         # コンソールに出力
-        logger.info(final_output, end='', flush=True)
+        logger.info(final_output)
 

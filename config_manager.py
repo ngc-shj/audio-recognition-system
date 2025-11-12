@@ -18,11 +18,11 @@ from dataclasses import dataclass
 # Logging
 from utils.logger import setup_logger
 
-
-@dataclass
 # Setup logger
 logger = setup_logger(__name__)
 
+
+@dataclass
 class DynamicBufferConfig:
     """動的バッファ設定データクラス"""
     min_duration: float = 2.0

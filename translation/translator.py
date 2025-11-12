@@ -416,10 +416,10 @@ class Translation:
                             with open(file_path, "a", encoding="utf-8") as f:
                                 f.write(content)
                     except IOError as e:
-                        logger.info(f"ログ書き込みエラー: {e}", flush=True)
+                        logger.info(f"ログ書き込みエラー: {e}")
 
             except Exception as e:
-                logger.info(f"\nエラー (翻訳スレッド): {e}", flush=True)
+                logger.info(f"\nエラー (翻訳スレッド): {e}")
                 time.sleep(0.5)
             
             self.check_model_reload()
