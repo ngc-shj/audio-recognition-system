@@ -23,13 +23,19 @@ from pydantic import BaseModel
 import uvicorn
 import yaml
 
+# Logging
+from utils.logger import setup_logger
+
+# Setup logger
+logger = setup_logger(__name__)
+
 # PyAudio import for device enumeration (optional, with fallback)
 try:
     import pyaudio
     PYAUDIO_AVAILABLE = True
 except ImportError:
     PYAUDIO_AVAILABLE = False
-    print("Warning: PyAudio not available. Audio device enumeration will be limited.")
+    logger.warning(" PyAudio not available. Audio device enumeration will be limited.")
 
 
 app = FastAPI(title="Audio Recognition System Web UI")
@@ -62,11 +68,11 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"Client connected. Total connections: {len(self.active_connections)}")
+        logger.info(f"Client connected. Total connections: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
-        print(f"Client disconnected. Total connections: {len(self.active_connections)}")
+        logger.info(f"Client disconnected. Total connections: {len(self.active_connections)}")
 
     async def broadcast(self, message: dict):
         """全接続クライアントにメッセージをブロードキャスト"""
@@ -74,7 +80,7 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception as e:
-                print(f"Error broadcasting to client: {e}")
+                logger.error(f"Error broadcasting to client: {e}")
 
 
 manager = ConnectionManager()
@@ -166,14 +172,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif message_type == "stop":
                 # 音声認識停止
-                print(f"\nStop request received. Running: {server_state.is_recognition_running}, System: {server_state.recognition_system is not None}")
+                logger.info(f"\nStop request received. Running: {server_state.is_recognition_running}, System: {server_state.recognition_system is not None}")
 
                 if server_state.is_recognition_running:
                     # すぐにフラグをクリアして、UIが正しい状態を表示できるようにする
                     server_state.is_recognition_running = False
 
                     if server_state.recognition_system:
-                        print("Stopping recognition system via is_running.clear()...")
+                        logger.info("Stopping recognition system via is_running.clear()...")
                         # is_running Eventをクリアして停止
                         server_state.recognition_system.is_running.clear()
 
@@ -190,12 +196,12 @@ async def websocket_endpoint(websocket: WebSocket):
                         })
                     else:
                         # システムインスタンスがまだキャプチャされていない場合
-                        print("Warning: System instance not yet captured. Waiting...")
+                        logger.warning(" System instance not yet captured. Waiting...")
                         # 少し待ってから再試行
                         import asyncio
                         await asyncio.sleep(0.5)
                         if server_state.recognition_system:
-                            print("System instance now available. Stopping...")
+                            logger.info("System instance now available. Stopping...")
                             server_state.recognition_system.is_running.clear()
                             await websocket.send_json({
                                 "type": "status",
@@ -208,7 +214,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "status": "stopped"
                             })
                         else:
-                            print("Error: Could not capture system instance")
+                            logger.error("Could not capture system instance")
                             await websocket.send_json({
                                 "type": "error",
                                 "message": "Could not stop recognition: system not ready"
@@ -216,7 +222,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             # エラーの場合でもフラグを再設定（リトライできるように）
                             server_state.is_recognition_running = True
                 else:
-                    print("Recognition is not running")
+                    logger.info("Recognition is not running")
                     await websocket.send_json({
                         "type": "status",
                         "message": "Recognition not running",
@@ -235,7 +241,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 if "tts_enabled" in settings:
                     server_state.config["tts_enabled"] = settings["tts_enabled"]
 
-                print(f"Settings updated: {server_state.config}")
+                logger.info(f"Settings updated: {server_state.config}")
 
                 # 設定変更確認を返す
                 await websocket.send_json({
@@ -253,7 +259,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
 
 
@@ -410,7 +416,7 @@ async def get_audio_devices():
                     })
 
             except Exception as e:
-                print(f"Error getting device {i} info: {e}")
+                logger.error(f"Error getting device {i} info: {e}")
                 continue
 
         # Get default devices before terminating PyAudio
@@ -487,7 +493,7 @@ def run_recognition_system(config_path: str = "config.yaml",
                     time.sleep(0.1)
                     if hasattr(main_module, '_system_instance') and main_module._system_instance:
                         server_state.recognition_system = main_module._system_instance
-                        print("System instance captured for stop control")
+                        logger.info("System instance captured for stop control")
                         break
 
             # インスタンスキャプチャ用スレッドを開始
@@ -497,16 +503,16 @@ def run_recognition_system(config_path: str = "config.yaml",
             # メイン関数を実行（ブロッキング）
             main_module.main()
     except KeyboardInterrupt:
-        print("\nRecognition system interrupted")
+        logger.info("\nRecognition system interrupted")
     except Exception as e:
-        print(f"Error starting recognition system: {e}")
+        logger.info(f"Error starting recognition system: {e}")
         import traceback
         traceback.print_exc()
     finally:
         # スレッド終了時にステータスを更新
         server_state.is_recognition_running = False
         server_state.recognition_system = None
-        print("Recognition system stopped")
+        logger.info("Recognition system stopped")
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000,
@@ -533,13 +539,13 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
         if os.path.exists(example_path):
             try:
                 shutil.copy2(example_path, config_path)
-                print(f"初回起動: {example_path} を {config_path} にコピーしました。")
+                logger.info(f"初回起動: {example_path} を {config_path} にコピーしました。")
             except Exception as e:
-                print(f"警告: 設定ファイルのコピーに失敗しました: {e}")
-                print(f"手動で {example_path} を {config_path} にコピーしてください。")
+                logger.warning(f" 設定ファイルのコピーに失敗しました: {e}")
+                logger.info(f"手動で {example_path} を {config_path} にコピーしてください。")
         else:
-            print(f"警告: {config_path} と {example_path} が見つかりません。")
-            print("設定ファイルが必要です。")
+            logger.warning(f" {config_path} と {example_path} が見つかりません。")
+            logger.warning("設定ファイルが必要です。")
 
     web_ui_url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{port}"
 
@@ -554,7 +560,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
     # 音声認識システムを別スレッドで起動
     if start_recognition:
         mode_name = "音声認識＋翻訳" if mode == "translation" else "音声認識のみ"
-        print(f"\n{mode_name}システムを起動しています...")
+        logger.info(f"\n{mode_name}システムを起動しています...")
         recognition_thread = threading.Thread(
             target=run_recognition_system,
             args=(config_path, source_lang, target_lang, web_ui_url, mode),
@@ -563,9 +569,9 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
         recognition_thread.start()
         server_state.is_recognition_running = True
         server_state.recognition_thread = recognition_thread
-        print(f"{mode_name}システムが起動しました\n")
+        logger.info(f"{mode_name}システムが起動しました\n")
 
-    print(f"Starting Web UI server at http://{host}:{port}")
+    logger.info(f"Starting Web UI server at http://{host}:{port}")
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 

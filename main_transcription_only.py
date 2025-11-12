@@ -11,6 +11,9 @@ import time
 import queue
 from pathlib import Path
 
+# Logging
+from utils.logger import setup_logger
+
 from config_manager import ConfigManager
 
 from audio.capture import AudioCapture
@@ -27,6 +30,9 @@ except ImportError:
 
 # グローバルシステムインスタンス（Web UIから停止するため）
 _system_instance = None
+
+# Setup logger
+logger = setup_logger(__name__)
 
 
 class AudioTranscriptionSystem:
@@ -50,31 +56,34 @@ class AudioTranscriptionSystem:
             threading.Thread(target=self.speech_recognition.recognition_thread, args=(self.is_running,))
         ]
         
-        print("\n" + "="*60)
-        print("音声文字起こしシステムを起動しています...")
-        print("="*60)
+        logger.info("")
+        logger.info("="*60)
+        logger.info("音声文字起こしシステムを起動しています...")
+        logger.info("="*60)
         if self.debug:
-            print("デバッグモード: 有効")
+            logger.info("デバッグモード: 有効")
         
         for thread in threads:
             thread.start()
         
-        print("システムが起動しました。終了するには Ctrl+C を押してください。\n")
+        logger.info("システムが起動しました。終了するには Ctrl+C を押してください。\n")
         
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n\n" + "="*60)
-            print("終了しています。しばらくお待ちください...")
-            print("="*60)
+            logger.info("")
+            logger.info("="*60)
+            logger.info("終了しています。しばらくお待ちください...")
+            logger.info("="*60)
             self.is_running.clear()
 
         # スレッド終了を待機（タイムアウト: 2秒）
         for thread in threads:
             thread.join(timeout=2.0)
 
-        print("\nプログラムを終了しました。\n")
+        logger.info("")
+        logger.info("プログラムを終了しました。\n")
 
 
 def parse_arguments():
@@ -140,18 +149,20 @@ def main():
     # 設定ファイルの存在確認
     config_path = Path(args.config)
     if not config_path.exists():
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}")
-        print(f"   カレントディレクトリ: {Path.cwd()}")
-        print(f"\nヒント: --config オプションで設定ファイルのパスを指定してください")
+        logger.error(f" 設定ファイルが見つかりません: {config_path}")
+        logger.info(f"   カレントディレクトリ: {Path.cwd()}")
+        logger.info("")
+        logger.info(f"ヒント: --config オプションで設定ファイルのパスを指定してください")
         sys.exit(1)
     
     try:
         # =====================================
         # ConfigManagerの初期化
         # =====================================
-        print(f"\n設定を読み込んでいます...")
-        print(f"   設定ファイル: {config_path}")
-        print(f"   プロファイル: {args.profile}")
+        logger.info("")
+        logger.info(f"設定を読み込んでいます...")
+        logger.info(f"   設定ファイル: {config_path}")
+        logger.info(f"   プロファイル: {args.profile}")
         
         config = ConfigManager(
             config_path=str(config_path),
@@ -161,7 +172,7 @@ def main():
         # コマンドライン引数による上書き（公式 API を使用）
         if args.output_dir:
             config.set_output_dir(args.output_dir)
-            print(f"   出力ディレクトリを上書き: {args.output_dir}")
+            logger.info(f"   出力ディレクトリを上書き: {args.output_dir}")
 
         if args.model_size:
             # ASRモデルサイズの上書き（platform 固有）
@@ -172,25 +183,26 @@ def main():
             if config.platform not in config._config['models']['asr']:
                 config._config['models']['asr'][config.platform] = {}
             config._config['models']['asr'][config.platform]['model_size'] = args.model_size
-            print(f"   モデルサイズを上書き: {args.model_size}")
+            logger.info(f"   モデルサイズを上書き: {args.model_size}")
 
         if args.debug:
             config.set_debug(True)
-            print(f"   デバッグモードを上書き: 有効")
+            logger.info(f"   デバッグモードを上書き: 有効")
 
         # 言語設定の上書き（公式 API を使用）
         if args.source_lang:
             config.set_language(args.source_lang, config.language.target)
-            print(f"   入力言語を上書き: {args.source_lang}")
+            logger.info(f"   入力言語を上書き: {args.source_lang}")
         
         # =====================================
         # 設定の表示
         # =====================================
-        print(f"\nシステム設定:")
-        print(f"   言語: {config.language.source}")
-        print(f"   音声: {config.audio.sample_rate}Hz, {config.audio.channels}ch, {config.audio.format_str}")
-        print(f"   ASRモデル: {config.get_model_config('asr').model_size}")
-        print(f"   出力先: {config.output.directory}")
+        logger.info("")
+        logger.info(f"システム設定:")
+        logger.info(f"   言語: {config.language.source}")
+        logger.info(f"   音声: {config.audio.sample_rate}Hz, {config.audio.channels}ch, {config.audio.format_str}")
+        logger.info(f"   ASRモデル: {config.get_model_config('asr').model_size}")
+        logger.info(f"   出力先: {config.output.directory}")
         
         debug_mode = config.is_debug_enabled()
 
@@ -204,15 +216,16 @@ def main():
                     server_url=args.web_ui_url,
                     enabled=True
                 )
-                print(f"\nWeb UI連携を有効化しました: {args.web_ui_url}")
+                logger.info("")
+                logger.info(f"Web UI連携を有効化しました: {args.web_ui_url}")
                 # Note: Web UIサーバー側で"running"ステータスを送信するため、
                 # ここでは初期ステータスを送信しない
                 # web_ui.send_status("stopped", "System initialized")
             except Exception as e:
-                print(f"Warning: Web UI Bridge initialization failed: {e}")
+                logger.warning(f" Web UI Bridge initialization failed: {e}")
                 web_ui = None
         elif args.web_ui and not WEB_UI_AVAILABLE:
-            print("\nWarning: Web UI Bridge is not available. Install required dependencies.")
+            logger.info("\nWarning: Web UI Bridge is not available. Install required dependencies.")
 
         # =====================================
         # リソースマネージャー
@@ -228,7 +241,8 @@ def main():
         # =====================================
         # コンポーネントの初期化
         # =====================================
-        print(f"\nコンポーネントを初期化しています...")
+        logger.info("")
+        logger.info(f"コンポーネントを初期化しています...")
         
         # 直接AudioConfigデータクラスを渡す
         audio_capture = AudioCapture(config.audio, audio_queue, config.audio)
@@ -257,10 +271,12 @@ def main():
         _system_instance.run()
         
     except FileNotFoundError as e:
-        print(f"\nエラー: {e}")
+        logger.info("")
+        logger.info(f"エラー: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n予期しないエラーが発生しました: {e}")
+        logger.info("")
+        logger.info(f"予期しないエラーが発生しました: {e}")
         if args.debug:
             import traceback
             traceback.print_exc()
