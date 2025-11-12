@@ -4,10 +4,9 @@
  * Handles loading, saving, and managing advanced configuration settings.
  */
 
-import { serverConfig, setServerConfig, setIsRunning, DOM, textPairs } from './state.js';
+import { setServerConfig, setIsRunning, DOM } from './state.js';
 import { updateStatus, updateUIForMode, showToast } from './ui.js';
 import { loadAudioDevices } from './audio-devices.js';
-import { updatePairDisplay } from './text-display.js';
 
 /**
  * Load server configuration
@@ -165,19 +164,6 @@ function populateAdvancedSettings(config) {
         document.getElementById('contextWindowSize').value = windowSize;
         document.getElementById('contextWindowSizeValue').textContent = `${windowSize} sentences`;
     }
-
-    // Display Options
-    if (config.output) {
-        const showTimestampElem = document.getElementById('showTimestamp');
-        const showLanguageElem = document.getElementById('showLanguage');
-
-        if (showTimestampElem) {
-            showTimestampElem.checked = config.output.show_timestamp ?? true;
-        }
-        if (showLanguageElem) {
-            showLanguageElem.checked = config.output.show_language ?? true;
-        }
-    }
 }
 
 /**
@@ -209,13 +195,18 @@ export function setupModeDependentUI() {
     if (!modeElement) return;
 
     const mode = modeElement.value;
+
+    // Translation-specific settings (Realtime and Restart sections)
+    const translationRealtimeSection = document.getElementById('translationRealtimeSection');
     const translationSettingsSection = document.getElementById('translationSettingsSection');
 
     if (mode === 'translation') {
-        // Translation mode: Show translation settings section
+        // Translation mode: Show translation settings sections
+        if (translationRealtimeSection) translationRealtimeSection.style.display = 'block';
         if (translationSettingsSection) translationSettingsSection.style.display = 'block';
     } else {
-        // Transcript mode: Hide translation settings section
+        // Transcript mode: Hide translation settings sections
+        if (translationRealtimeSection) translationRealtimeSection.style.display = 'none';
         if (translationSettingsSection) translationSettingsSection.style.display = 'none';
     }
 }
@@ -273,8 +264,16 @@ export function setupAdvancedSettings() {
 
     const temperatureInput = document.getElementById('temperature');
     if (temperatureInput) {
+        // Update display value on input
         temperatureInput.addEventListener('input', (e) => {
             document.getElementById('temperatureValue').textContent = e.target.value;
+        });
+        // Auto-save on change (when user releases slider)
+        temperatureInput.addEventListener('change', async (e) => {
+            const tempValue = parseFloat(e.target.value);
+            // Save to both darwin and default
+            await autoSaveRealtimeSetting('translation.generation.darwin.temperature', tempValue, 'temperatureFeedback');
+            await autoSaveRealtimeSetting('translation.generation.default.temperature', tempValue, null);
         });
     }
 
@@ -285,25 +284,32 @@ export function setupAdvancedSettings() {
         });
     }
 
-    // Display Options - update display immediately when changed
-    const showTimestampCheckbox = document.getElementById('showTimestamp');
-    const showLanguageCheckbox = document.getElementById('showLanguage');
-
-    if (showTimestampCheckbox) {
-        showTimestampCheckbox.addEventListener('change', () => {
-            // Re-render all existing text pairs
-            textPairs.forEach(pair => {
-                updatePairDisplay(pair);
-            });
+    // TTS Settings - auto-save on change
+    const outputDeviceSelect = document.getElementById('outputDevice');
+    if (outputDeviceSelect) {
+        outputDeviceSelect.addEventListener('change', async () => {
+            await autoSaveRealtimeSetting('tts.output_device', outputDeviceSelect.value || null, 'outputDeviceFeedback');
         });
     }
 
-    if (showLanguageCheckbox) {
-        showLanguageCheckbox.addEventListener('change', () => {
-            // Re-render all existing text pairs
-            textPairs.forEach(pair => {
-                updatePairDisplay(pair);
-            });
+    const ttsRateInput = document.getElementById('ttsRate');
+    if (ttsRateInput) {
+        ttsRateInput.addEventListener('change', async () => {
+            await autoSaveRealtimeSetting('tts.rate', ttsRateInput.value, 'ttsRateFeedback');
+        });
+    }
+
+    const ttsVolumeInput = document.getElementById('ttsVolume');
+    if (ttsVolumeInput) {
+        ttsVolumeInput.addEventListener('change', async () => {
+            await autoSaveRealtimeSetting('tts.volume', ttsVolumeInput.value, 'ttsVolumeFeedback');
+        });
+    }
+
+    const ttsPitchInput = document.getElementById('ttsPitch');
+    if (ttsPitchInput) {
+        ttsPitchInput.addEventListener('change', async () => {
+            await autoSaveRealtimeSetting('tts.pitch', ttsPitchInput.value, 'ttsPitchFeedback');
         });
     }
 
@@ -334,18 +340,49 @@ export function setupAdvancedSettings() {
 }
 
 /**
- * Save advanced settings to server
+ * Auto-save a single realtime setting with inline feedback
+ */
+async function autoSaveRealtimeSetting(key, value, feedbackElementId) {
+    try {
+        const updates = { [key]: value };
+
+        const response = await fetch('/api/config/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ updates })
+        });
+
+        if (response.ok) {
+            // Show inline feedback
+            const feedbackElement = document.getElementById(feedbackElementId);
+            if (feedbackElement) {
+                feedbackElement.style.display = 'inline';
+                // Hide after 2 seconds
+                setTimeout(() => {
+                    feedbackElement.style.display = 'none';
+                }, 2000);
+            }
+        } else {
+            const error = await response.json();
+            showToast(`❌ Failed to save setting: ${error.detail}`, 'warning', 3000);
+        }
+    } catch (error) {
+        console.error('Error auto-saving setting:', error);
+        showToast('❌ Error saving setting. Please try again.', 'warning', 3000);
+    }
+}
+
+/**
+ * Save advanced settings to server (restart-required settings only)
+ * Note: Realtime settings (TTS, temperature, display options) are auto-saved on change
  */
 async function saveAdvancedSettings() {
     // Detect platform to save only the appropriate ASR model field
     const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
 
     const updates = {
-        // TTS Settings
-        'tts.rate': document.getElementById('ttsRate').value,
-        'tts.volume': document.getElementById('ttsVolume').value,
-        'tts.pitch': document.getElementById('ttsPitch').value,
-
         // Model Settings - only save the visible ASR field based on platform
         'models.translation.darwin.model_path': document.getElementById('translationModelPath').value,
 
@@ -354,23 +391,16 @@ async function saveAdvancedSettings() {
         'models.translation.api.base_url': document.getElementById('apiBaseUrl').value,
         'models.translation.api.model': document.getElementById('apiModel').value,
 
-        // Audio Device Settings
+        // Audio Device Settings (input device only - output is realtime)
         'audio.input_device': document.getElementById('inputDevice').value || null,
-        'tts.output_device': document.getElementById('outputDevice').value || null,
 
         // Audio Detection
         'audio.voice_detection.silence_threshold': parseFloat(document.getElementById('silenceThreshold').value),
         'audio.dynamic_buffer.medium_pause': parseFloat(document.getElementById('mediumPause').value),
         'audio.dynamic_buffer.long_pause': parseFloat(document.getElementById('longPause').value),
 
-        // Translation Parameters
-        'translation.generation.darwin.temperature': parseFloat(document.getElementById('temperature').value),
-        'translation.generation.default.temperature': parseFloat(document.getElementById('temperature').value),
-        'translation.context.window_size': parseInt(document.getElementById('contextWindowSize').value),
-
-        // Display Options (no restart required)
-        'output.show_timestamp': document.getElementById('showTimestamp')?.checked ?? true,
-        'output.show_language': document.getElementById('showLanguage')?.checked ?? true
+        // Context Window Size
+        'translation.context.window_size': parseInt(document.getElementById('contextWindowSize').value)
     };
 
     // Add platform-specific ASR model field
@@ -379,26 +409,6 @@ async function saveAdvancedSettings() {
     } else {
         updates['models.asr.darwin.model_size'] = document.getElementById('asrModelSize').value;
     }
-
-    // Determine if any settings that require restart were changed
-    const restartRequiredKeys = [
-        // Model settings (require restart)
-        'models.translation.darwin.model_path',
-        'models.asr.darwin.model_path', 'models.asr.darwin.model_size',
-        'models.translation.api.enabled', 'models.translation.api.base_url', 'models.translation.api.model',
-        // Device settings (require restart)
-        'audio.input_device',
-        // Voice detection (require restart)
-        'audio.voice_detection.silence_threshold',
-        'audio.dynamic_buffer.medium_pause', 'audio.dynamic_buffer.long_pause',
-        // Context window size (requires restart because deque maxlen cannot be changed)
-        'translation.context.window_size'
-        // TTS settings (including output device), Translation temperature are now realtime!
-        // Removed: 'tts.rate', 'tts.volume', 'tts.pitch', 'tts.output_device'
-        // Removed: 'translation.generation.darwin.temperature', 'translation.generation.default.temperature'
-    ];
-
-    const changedRestartRequired = Object.keys(updates).some(key => restartRequiredKeys.includes(key));
 
     try {
         const response = await fetch('/api/config/update', {
@@ -412,12 +422,8 @@ async function saveAdvancedSettings() {
         if (response.ok) {
             await response.json();  // Parse response but result not needed
 
-            // Show appropriate message based on what was changed
-            if (changedRestartRequired) {
-                showToast('✅ Settings saved! Restart recognition for model/device/voice detection changes to take effect.', 'info', 5000);
-            } else {
-                showToast('✅ Settings saved and applied immediately!', 'info', 2000);
-            }
+            // All settings in this function require restart
+            showToast('✅ Settings saved! Restart recognition to apply changes.', 'info', 5000);
 
             // Reload full config to reflect changes
             await loadFullConfig();

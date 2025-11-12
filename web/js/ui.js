@@ -61,12 +61,20 @@ function closeSettings() {
  * Update UI based on mode (Translation vs Transcript)
  */
 export function updateUIForMode(mode) {
+    const outputControls = document.getElementById('outputControls');
+
     if (mode === 'transcript') {
-        // Transcript mode: Hide translation settings
+        // Transcript mode: Hide translation settings and output controls
         DOM.translationSettings.classList.add('hidden');
+        if (outputControls) {
+            outputControls.style.display = 'none';
+        }
     } else {
-        // Translation mode: Show translation settings
+        // Translation mode: Show translation settings and output controls
         DOM.translationSettings.classList.remove('hidden');
+        if (outputControls) {
+            outputControls.style.display = 'flex';
+        }
     }
 
     // Update advanced settings UI based on mode
@@ -220,15 +228,6 @@ export function setupUIEventListeners() {
         });
     });
 
-    // Display settings change (redraw existing pairs)
-    [DOM.showTimestamp, DOM.showLanguage].forEach(element => {
-        element.addEventListener('change', () => {
-            textPairs.forEach(pair => {
-                updatePairDisplay(pair);
-            });
-        });
-    });
-
     // Header source language change
     DOM.headerSourceLang.addEventListener('change', () => {
         const newLang = DOM.headerSourceLang.value;
@@ -276,4 +275,31 @@ export function setupUIEventListeners() {
         // Update server config
         setServerConfig({ target_lang: newLang });
     });
+
+    // Toggle source language button (Translation mode only)
+    const toggleSourceBtn = document.getElementById('toggleSourceBtn');
+    const showSourceLangCheckbox = document.getElementById('showSourceLang');
+    const toggleSourceIcon = document.getElementById('toggleSourceIcon');
+    const toggleSourceText = document.getElementById('toggleSourceText');
+
+    if (toggleSourceBtn && showSourceLangCheckbox) {
+        toggleSourceBtn.addEventListener('click', () => {
+            // Toggle the checkbox
+            showSourceLangCheckbox.checked = !showSourceLangCheckbox.checked;
+
+            // Update button text and icon
+            if (showSourceLangCheckbox.checked) {
+                toggleSourceIcon.textContent = '👁️';
+                toggleSourceText.textContent = 'Hide Source';
+            } else {
+                toggleSourceIcon.textContent = '👁️‍🗨️';
+                toggleSourceText.textContent = 'Show Source';
+            }
+
+            // Re-render all existing text pairs
+            textPairs.forEach(pair => {
+                updatePairDisplay(pair);
+            });
+        });
+    }
 }

@@ -49,6 +49,14 @@
         </header>
 
         <div class="main-content">
+            <!-- Output Controls (Translation mode only) -->
+            <div id="outputControls" style="padding: 8px 12px; background: #f5f5f5; border-bottom: 1px solid #ddd; display: none; justify-content: flex-end; align-items: center; gap: 8px;">
+                <input type="checkbox" id="showSourceLang" checked style="display: none;">
+                <button id="toggleSourceBtn" type="button" style="padding: 6px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                    <span id="toggleSourceIcon">👁️</span>
+                    <span id="toggleSourceText">Hide Source</span>
+                </button>
+            </div>
             <div class="text-output" id="liveOutput">
                 <p style="color: #999; text-align: center; padding: 20px;">
                     Waiting for recognition to start...
@@ -108,13 +116,112 @@
                 </div>
             </div>
 
-            <!-- Advanced Settings -->
+            <!-- Advanced Settings Header -->
             <div class="settings-group" style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
                 <label style="font-size: 1.1rem; color: #667eea;">🔧 Advanced Settings</label>
-                <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Changes require stopping and restarting recognition</p>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Configure speech recognition, translation, and display options</p>
             </div>
 
-            <!-- 1. ASR Settings -->
+            <!-- ⚡ REALTIME SETTINGS SECTION -->
+            <div id="realtimeSettingsSection" style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-left: 4px solid #4caf50; border-radius: 8px;">
+                <div class="settings-group" style="margin-bottom: 15px; cursor: pointer;" onclick="toggleSection('realtimeContent', 'realtimeToggle')">
+                    <label style="font-size: 1rem; color: #2e7d32; font-weight: 600; user-select: none;">
+                        <span id="realtimeToggle">▼</span> ⚡ Realtime Settings
+                    </label>
+                    <p style="font-size: 0.85rem; color: #558b2f; margin-top: 5px;">Changes apply instantly without restart</p>
+                </div>
+                <div id="realtimeContent">
+
+                <!-- Translation Realtime Settings (Translation mode only) -->
+                <div id="translationRealtimeSection" class="settings-section" style="margin-top: 20px;">
+                    <div class="settings-group" style="margin-bottom: 15px;">
+                        <label style="font-size: 1rem; color: #4caf50; font-weight: 600;">🌐 Translation Realtime Settings</label>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">TTS output and translation parameters</p>
+                    </div>
+
+                    <!-- TTS Settings -->
+                    <div class="settings-group" style="margin-top: 15px;">
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: #555; margin: 0;">Text-to-Speech (TTS)</h4>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Speech output device and voice parameters</p>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="outputDevice">Output Device (TTS Speaker):</label>
+                        <select id="outputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                            <option value="">Default (System Speaker)</option>
+                        </select>
+                        <button id="refreshOutputDevices" style="margin-top: 8px; padding: 6px 12px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                            🔄 Refresh Devices
+                        </button>
+                        <span id="outputDeviceFeedback" style="margin-left: 10px; color: #4caf50; font-size: 0.85rem; display: none;">✓ Applied</span>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="ttsRate">TTS Speech Rate:</label>
+                        <select id="ttsRate">
+                            <option value="-50%">-50% (Very Slow)</option>
+                            <option value="-25%">-25% (Slow)</option>
+                            <option value="+0%">+0% (Normal)</option>
+                            <option value="+20%">+20% (Faster)</option>
+                            <option value="+30%" selected>+30% (Fast)</option>
+                            <option value="+50%">+50% (Very Fast)</option>
+                            <option value="+75%">+75% (Ultra Fast)</option>
+                            <option value="+100%">+100% (Maximum)</option>
+                        </select>
+                        <span id="ttsRateFeedback" style="margin-left: 10px; color: #4caf50; font-size: 0.85rem; display: none;">✓ Applied</span>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="ttsVolume">TTS Volume:</label>
+                        <select id="ttsVolume">
+                            <option value="-50%">-50% (Very Quiet)</option>
+                            <option value="-25%">-25% (Quiet)</option>
+                            <option value="+0%" selected>+0% (Normal)</option>
+                            <option value="+25%">+25% (Louder)</option>
+                            <option value="+50%">+50% (Very Loud)</option>
+                        </select>
+                        <span id="ttsVolumeFeedback" style="margin-left: 10px; color: #4caf50; font-size: 0.85rem; display: none;">✓ Applied</span>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="ttsPitch">TTS Pitch:</label>
+                        <select id="ttsPitch">
+                            <option value="-50Hz">-50Hz (Very Low)</option>
+                            <option value="-25Hz">-25Hz (Low)</option>
+                            <option value="+0Hz" selected>+0Hz (Normal)</option>
+                            <option value="+25Hz">+25Hz (High)</option>
+                            <option value="+50Hz">+50Hz (Very High)</option>
+                        </select>
+                        <span id="ttsPitchFeedback" style="margin-left: 10px; color: #4caf50; font-size: 0.85rem; display: none;">✓ Applied</span>
+                    </div>
+
+                    <!-- Translation Temperature -->
+                    <div class="settings-group" style="margin-top: 15px;">
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: #555; margin: 0;">Translation Temperature</h4>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Controls translation creativity and consistency</p>
+                    </div>
+                    <div class="settings-group">
+                        <label for="temperature">Translation Temperature (creativity):</label>
+                        <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.8" style="width: 100%;">
+                        <span id="temperatureValue" style="font-size: 0.9rem; color: #666;">0.8</span>
+                        <span id="temperatureFeedback" style="margin-left: 10px; color: #4caf50; font-size: 0.85rem; display: none;">✓ Applied</span>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Higher = more creative, Lower = more conservative</p>
+                    </div>
+                </div>
+                </div> <!-- End realtimeContent -->
+            </div>
+
+            <!-- ⚠️ RESTART REQUIRED SETTINGS SECTION -->
+            <div id="restartRequiredSection" style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-left: 4px solid #ff9800; border-radius: 8px;">
+                <div class="settings-group" style="margin-bottom: 15px; cursor: pointer;" onclick="toggleSection('restartContent', 'restartToggle')">
+                    <label style="font-size: 1rem; color: #e65100; font-weight: 600; user-select: none;">
+                        <span id="restartToggle">▼</span> ⚠️ Restart Required Settings
+                    </label>
+                    <p style="font-size: 0.85rem; color: #ef6c00; margin-top: 5px;">Changes take effect after restarting recognition</p>
+                </div>
+                <div id="restartContent">
+
+                <!-- 1. ASR Settings -->
             <div class="settings-section">
                 <div class="settings-group" style="margin-bottom: 15px;">
                     <label style="font-size: 1rem; color: #667eea; font-weight: 600;">📢 ASR Settings</label>
@@ -154,7 +261,7 @@
 
                 <!-- Voice Detection -->
                 <div class="settings-group" style="margin-top: 15px;">
-                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Voice Detection</label>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; color: #555; margin: 0;">Voice Detection</h4>
                 </div>
 
                 <div class="settings-group">
@@ -179,145 +286,87 @@
                 </div>
             </div>
 
-            <!-- 2. Translation Settings (Translation mode only) -->
-            <div id="translationSettingsSection" class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">🌐 Translation Settings</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Translation model, TTS output, and parameters</p>
-                </div>
-
-                <!-- Translation Model -->
-                <div class="settings-group" style="margin-top: 15px;">
-                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Translation Model</label>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Choose either local model or external API server (mutually exclusive)</p>
-                </div>
-
-                <div class="settings-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="apiEnabled">
-                        <label for="apiEnabled">Use External API Server (LM Studio/Ollama/vLLM)</label>
+                <!-- 2. Translation Settings (Translation mode only) -->
+                <div id="translationSettingsSection" class="settings-section" style="margin-top: 20px;">
+                    <div class="settings-group" style="margin-bottom: 15px;">
+                        <label style="font-size: 1rem; font-weight: 600; color: #667eea;">🌐 Translation Settings</label>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Translation model and context configuration</p>
                     </div>
-                </div>
 
-                <div id="localModelSettings" class="settings-section">
-                    <div class="settings-group">
-                        <label for="translationModelPath">Local Translation Model Path:</label>
-                        <input type="text" id="translationModelPath" value="mlx-community/gpt-oss-20b-MXFP4-Q4" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9rem;">
-                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">HuggingFace model ID or local path (macOS: MLX format)</p>
-                    </div>
-                </div>
-
-                <div id="apiServerSettings" class="settings-section hidden">
-                    <div class="settings-group">
-                        <label for="apiBaseUrl">API Base URL:</label>
-                        <input type="text" id="apiBaseUrl" value="http://localhost:1234/v1" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">OpenAI-compatible API endpoint</p>
+                    <!-- Translation Model -->
+                    <div class="settings-group" style="margin-top: 15px;">
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: #555; margin: 0;">Translation Model</h4>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Choose either local model or external API server (mutually exclusive)</p>
                     </div>
 
                     <div class="settings-group">
-                        <label for="apiModel">Model Name:</label>
-                        <input type="text" id="apiModel" value="local-model" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Model name configured in API server</p>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="apiEnabled">
+                            <label for="apiEnabled">Use External API Server (LM Studio/Ollama/vLLM)</label>
+                        </div>
+                    </div>
+
+                    <div id="localModelSettings" class="settings-section">
+                        <div class="settings-group">
+                            <label for="translationModelPath">Local Translation Model Path:</label>
+                            <input type="text" id="translationModelPath" value="mlx-community/gpt-oss-20b-MXFP4-Q4" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9rem;">
+                            <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">HuggingFace model ID or local path (macOS: MLX format)</p>
+                        </div>
+                    </div>
+
+                    <div id="apiServerSettings" class="settings-section hidden">
+                        <div class="settings-group">
+                            <label for="apiBaseUrl">API Base URL:</label>
+                            <input type="text" id="apiBaseUrl" value="http://localhost:1234/v1" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                            <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">OpenAI-compatible API endpoint</p>
+                        </div>
+
+                        <div class="settings-group">
+                            <label for="apiModel">Model Name:</label>
+                            <input type="text" id="apiModel" value="local-model" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                            <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Model name configured in API server</p>
+                        </div>
+                    </div>
+
+                    <!-- Context Window Size -->
+                    <div class="settings-group" style="margin-top: 15px;">
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: #555; margin: 0;">Context Window Size</h4>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Number of previous sentences to use for translation context</p>
+                    </div>
+                    <div class="settings-group">
+                        <label for="contextWindowSize">Context Window Size:</label>
+                        <input type="range" id="contextWindowSize" min="1" max="20" step="1" value="8" style="width: 100%;">
+                        <span id="contextWindowSizeValue" style="font-size: 0.9rem; color: #666;">8 sentences</span>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Higher values provide more context but require restart to apply</p>
                     </div>
                 </div>
 
-                <!-- Output Device (TTS Speaker) -->
-                <div class="settings-group" id="outputDeviceGroup">
-                    <label for="outputDevice">Output Device (TTS Speaker):</label>
-                    <select id="outputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-                        <option value="">Default (System Speaker)</option>
-                    </select>
-                    <button id="refreshOutputDevices" style="margin-top: 8px; padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
-                        🔄 Refresh Devices
+                <!-- Save Settings Button -->
+                <div class="settings-group" style="margin-top: 30px;">
+                    <button id="saveAdvancedSettings" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);">
+                        💾 Save & Apply on Restart
                     </button>
+                    <p style="font-size: 0.8rem; color: #ef6c00; text-align: center; margin-top: 8px;">⚠️ These settings require stopping and restarting recognition to take effect</p>
                 </div>
-
-                <!-- TTS Settings -->
-                <div class="settings-group" style="margin-top: 15px;">
-                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Text-to-Speech Settings</label>
-                </div>
-
-                <div class="settings-group">
-                    <label for="ttsRate">TTS Speech Rate:</label>
-                    <select id="ttsRate">
-                        <option value="-50%">-50% (Very Slow)</option>
-                        <option value="-25%">-25% (Slow)</option>
-                        <option value="+0%">+0% (Normal)</option>
-                        <option value="+20%">+20% (Faster)</option>
-                        <option value="+30%" selected>+30% (Fast)</option>
-                        <option value="+50%">+50% (Very Fast)</option>
-                        <option value="+75%">+75% (Ultra Fast)</option>
-                        <option value="+100%">+100% (Maximum)</option>
-                    </select>
-                </div>
-
-                <div class="settings-group">
-                    <label for="ttsVolume">TTS Volume:</label>
-                    <select id="ttsVolume">
-                        <option value="-50%">-50% (Very Quiet)</option>
-                        <option value="-25%">-25% (Quiet)</option>
-                        <option value="+0%" selected>+0% (Normal)</option>
-                        <option value="+25%">+25% (Louder)</option>
-                        <option value="+50%">+50% (Very Loud)</option>
-                    </select>
-                </div>
-
-                <div class="settings-group">
-                    <label for="ttsPitch">TTS Pitch:</label>
-                    <select id="ttsPitch">
-                        <option value="-50Hz">-50Hz (Very Low)</option>
-                        <option value="-25Hz">-25Hz (Low)</option>
-                        <option value="+0Hz" selected>+0Hz (Normal)</option>
-                        <option value="+25Hz">+25Hz (High)</option>
-                        <option value="+50Hz">+50Hz (Very High)</option>
-                    </select>
-                </div>
-
-                <!-- Translation Parameters -->
-                <div class="settings-group" style="margin-top: 15px;">
-                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Translation Parameters</label>
-                </div>
-
-                <div class="settings-group">
-                    <label for="temperature">Translation Temperature (creativity):</label>
-                    <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.8" style="width: 100%;">
-                    <span id="temperatureValue" style="font-size: 0.9rem; color: #666;">0.8</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Higher = more creative, Lower = more conservative</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="contextWindowSize">Context Window Size:</label>
-                    <input type="range" id="contextWindowSize" min="1" max="20" step="1" value="8" style="width: 100%;">
-                    <span id="contextWindowSizeValue" style="font-size: 0.9rem; color: #666;">8 sentences</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Number of previous sentences to consider for context</p>
-                </div>
-            </div>
-
-            <!-- 3. Display Options -->
-            <div class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">👁️ Display Options</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Control what information is shown in the output (changes apply immediately)</p>
-                </div>
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="showTimestamp" checked>
-                    <label for="showTimestamp">Show Timestamp</label>
-                </div>
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="showLanguage" checked>
-                    <label for="showLanguage">Show Source Language</label>
-                </div>
-            </div>
-
-            <!-- Save Settings Button -->
-            <div class="settings-group" style="margin-top: 30px;">
-                <button id="saveAdvancedSettings" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
-                    💾 Save Advanced Settings
-                </button>
-                <p style="font-size: 0.8rem; color: #999; text-align: center; margin-top: 8px;">TTS & Translation parameters apply immediately. Model/Device changes require restart.</p>
+                </div> <!-- End restartContent -->
             </div>
         </div>
     </div>
+
+    <script>
+    // Toggle section visibility
+    function toggleSection(contentId, toggleId) {
+        const content = document.getElementById(contentId);
+        const toggle = document.getElementById(toggleId);
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '▶';
+        }
+    }
+    </script>
 
     <script type="module" src="static/js/main.js"></script>
 </body>
