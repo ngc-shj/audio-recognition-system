@@ -109,28 +109,41 @@ export function updatePairDisplay(pair) {
     const displayTimestamp = DOM.showTimestamp.checked;
     const displayLanguage = DOM.showLanguage.checked;
 
-    let prefix = '';
-    if (displayTimestamp) {
-        prefix += timeStr;
-    }
-    if (displayLanguage && pair.language) {
-        prefix += ` [${pair.language}]`;
-    }
-    if (prefix) {
-        prefix = `<span class="timestamp">${prefix}</span> `;
-    }
-
     // Translation mode: time + source (small, light) → translation (large, main)
     if (isTranslationMode) {
-        if (pair.recognized) {
+        // Show original text only if displayLanguage is enabled
+        if (pair.recognized && displayLanguage) {
+            let prefix = '';
+            if (displayTimestamp) {
+                prefix += timeStr;
+            }
+            if (pair.language) {
+                prefix += ` [${pair.language}]`;
+            }
+            if (prefix) {
+                prefix = `<span class="timestamp">${prefix}</span> `;
+            }
             html += `<div class="original-text">${prefix}${escapeHtml(pair.recognized)}</div>`;
         }
+        // Always show translated text
         if (pair.translated) {
-            html += `<div class="translated-text">${escapeHtml(pair.translated)}</div>`;
+            // Show timestamp only if original text is hidden
+            const translatedPrefix = (displayTimestamp && !displayLanguage) ? `<span class="timestamp">${timeStr}</span> ` : '';
+            html += `<div class="translated-text">${translatedPrefix}${escapeHtml(pair.translated)}</div>`;
         }
     } else {
         // Transcript mode: time + recognized text (large)
         if (pair.recognized) {
+            let prefix = '';
+            if (displayTimestamp) {
+                prefix += timeStr;
+            }
+            if (displayLanguage && pair.language) {
+                prefix += ` [${pair.language}]`;
+            }
+            if (prefix) {
+                prefix = `<span class="timestamp">${prefix}</span> `;
+            }
             html += `<div class="original-text">${prefix}${escapeHtml(pair.recognized)}</div>`;
         }
     }
