@@ -357,6 +357,29 @@ async def update_config(request: ConfigUpdateRequest):
             try:
                 server_state.config_manager.reload()
                 logger.info("ConfigManager reloaded for realtime config changes")
+
+                # TTSとTranslationのreload_configも呼び出す
+                if server_state.recognition_system:
+                    # Translation設定をリロード
+                    if hasattr(server_state.recognition_system, 'translation') and server_state.recognition_system.translation:
+                        try:
+                            server_state.recognition_system.translation.reload_config(
+                                server_state.config_manager.translation
+                            )
+                            logger.info("Translation config reloaded")
+                        except Exception as e:
+                            logger.warning(f"Failed to reload Translation config: {e}")
+
+                        # TTS設定をリロード（TTSはTranslationクラス内にある）
+                        if hasattr(server_state.recognition_system.translation, 'tts') and server_state.recognition_system.translation.tts:
+                            try:
+                                server_state.recognition_system.translation.tts.reload_config(
+                                    server_state.config_manager.tts
+                                )
+                                logger.info("TTS config reloaded")
+                            except Exception as e:
+                                logger.warning(f"Failed to reload TTS config: {e}")
+
             except Exception as e:
                 logger.warning(f"Failed to reload ConfigManager: {e}")
 

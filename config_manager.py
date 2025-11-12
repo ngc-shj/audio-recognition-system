@@ -441,6 +441,7 @@ class ConfigManager:
         self._output = None
         self._language = None
         self._resources = None
+        self._tts = None  # TTS設定もクリア
 
     def get_model_config(self, model_type: str) -> ModelConfig:
         """

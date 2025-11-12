@@ -117,6 +117,32 @@ class TextToSpeech:
         # 音声再生スレッドの開始
         self._start_speech_thread()
 
+    def reload_config(self, tts_config):
+        """
+        TTS設定をリアルタイムで再読み込み
+
+        Args:
+            tts_config: 新しいTTS設定（TTSConfig）
+
+        Note:
+            rate, volume, pitch, output_deviceなどの設定は次回の合成から反映されます。
+        """
+        self.config = tts_config
+
+        # 出力デバイスも再検索
+        if self.config.output_device:
+            new_device_index = self._find_output_device(self.config.output_device)
+            if new_device_index is not None:
+                self.output_device_index = new_device_index
+                logger.info(f"TTS output device changed to: {self.config.output_device} (index: {new_device_index})")
+            else:
+                logger.warning(f"Output device '{self.config.output_device}' not found. Keeping current device.")
+        else:
+            self.output_device_index = None
+            logger.info("TTS output device set to default")
+
+        logger.info(f"TTS config reloaded: rate={self.config.rate}, volume={self.config.volume}, pitch={self.config.pitch}")
+
     def _find_output_device(self, device_name: str) -> Optional[int]:
         """
         デバイス名から出力デバイスのインデックスを検索

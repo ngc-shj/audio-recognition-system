@@ -379,13 +379,15 @@ async function saveAdvancedSettings() {
         'models.asr.darwin.model_path', 'models.asr.darwin.model_size',
         'models.translation.api.enabled', 'models.translation.api.base_url', 'models.translation.api.model',
         // Device settings (require restart)
-        'audio.input_device', 'tts.output_device',
+        'audio.input_device',
         // Voice detection (require restart)
         'audio.voice_detection.silence_threshold',
-        'audio.dynamic_buffer.medium_pause', 'audio.dynamic_buffer.long_pause'
-        // TTS settings and Translation parameters are now realtime!
-        // Removed: 'tts.rate', 'tts.volume', 'tts.pitch'
-        // Removed: 'translation.generation.darwin.temperature', 'translation.generation.default.temperature', 'translation.context.window_size'
+        'audio.dynamic_buffer.medium_pause', 'audio.dynamic_buffer.long_pause',
+        // Context window size (requires restart because deque maxlen cannot be changed)
+        'translation.context.window_size'
+        // TTS settings (including output device), Translation temperature are now realtime!
+        // Removed: 'tts.rate', 'tts.volume', 'tts.pitch', 'tts.output_device'
+        // Removed: 'translation.generation.darwin.temperature', 'translation.generation.default.temperature'
     ];
 
     const changedRestartRequired = Object.keys(updates).some(key => restartRequiredKeys.includes(key));
