@@ -78,9 +78,10 @@ class AudioTranscriptionSystem:
             logger.info("="*60)
             self.is_running.clear()
 
-        # スレッド終了を待機（タイムアウト: 2秒）
+        # スレッド終了を待機（タイムアウト: 3秒）
+        # Longer timeout to ensure PyAudio callbacks complete properly
         for thread in threads:
-            thread.join(timeout=2.0)
+            thread.join(timeout=3.0)
 
         logger.info("")
         logger.info("プログラムを終了しました。\n")

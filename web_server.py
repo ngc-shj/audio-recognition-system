@@ -10,6 +10,7 @@ This server can also start the audio recognition system automatically.
 import asyncio
 import json
 import sys
+import signal
 import argparse
 import threading
 import shutil
@@ -28,6 +29,9 @@ from utils.logger import setup_logger
 
 # Setup logger
 logger = setup_logger(__name__)
+
+# Global shutdown flag
+shutdown_requested = False
 
 # PyAudio import for device enumeration (optional, with fallback)
 try:
@@ -571,6 +575,30 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
         server_state.recognition_thread = recognition_thread
         logger.info(f"{mode_name}システムが起動しました\n")
 
+    # Setup signal handlers for graceful shutdown
+    def signal_handler(sig, frame):
+        """Handle Ctrl+C gracefully"""
+        global shutdown_requested
+        if shutdown_requested:
+            logger.warning("Force shutdown requested")
+            sys.exit(1)
+
+        shutdown_requested = True
+        logger.info("")
+        logger.info("="*60)
+        logger.info("Shutting down gracefully... (Press Ctrl+C again to force)")
+        logger.info("="*60)
+
+        # Stop recognition system if running
+        if server_state.is_recognition_running and server_state.recognition_system:
+            logger.info("Stopping recognition system...")
+            server_state.recognition_system.is_running.clear()
+            server_state.is_recognition_running = False
+
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     # Configure uvicorn logging to match our format
     import logging
 
@@ -599,7 +627,17 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
     }
 
     logger.info(f"Starting Web UI server at http://{host}:{port}")
-    uvicorn.run(app, host=host, port=port, log_level="info", log_config=log_config)
+
+    # Run uvicorn with graceful shutdown support
+    try:
+        uvicorn.run(app, host=host, port=port, log_level="info", log_config=log_config)
+    except KeyboardInterrupt:
+        logger.info("Server shutdown complete")
+    finally:
+        # Final cleanup
+        if server_state.is_recognition_running and server_state.recognition_system:
+            server_state.recognition_system.is_running.clear()
+        logger.info("Web UI server stopped")
 
 
 if __name__ == "__main__":
