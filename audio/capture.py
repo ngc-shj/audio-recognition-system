@@ -53,30 +53,51 @@ class AudioCapture:
 
     def capture_thread(self, is_running):
         """音声キャプチャスレッドのメイン処理"""
-        audio = pyaudio.PyAudio()
+        audio = None
+        stream = None
 
-        stream = audio.open(
-            format=self.audio_config.format,
-            channels=self.audio_config.channels,
-            rate=self.audio_config.sample_rate,
-            input=True,
-            input_device_index=self.input_device_index,
-            frames_per_buffer=self.audio_config.chunk_size,
-            stream_callback=self.audio_callback
-        )
-        
-        logger.info(f"音声キャプチャスレッド開始 (デバイスインデックス: {self.input_device_index})")
-        
-        stream.start_stream()
+        try:
+            audio = pyaudio.PyAudio()
 
-        while is_running.is_set():
-            time.sleep(0.1)
+            stream = audio.open(
+                format=self.audio_config.format,
+                channels=self.audio_config.channels,
+                rate=self.audio_config.sample_rate,
+                input=True,
+                input_device_index=self.input_device_index,
+                frames_per_buffer=self.audio_config.chunk_size,
+                stream_callback=self.audio_callback
+            )
 
-        stream.stop_stream()
-        stream.close()
-        audio.terminate()
-        
-        logger.info("音声キャプチャスレッド終了")
+            logger.info(f"音声キャプチャスレッド開始 (デバイスインデックス: {self.input_device_index})")
+
+            stream.start_stream()
+
+            while is_running.is_set():
+                time.sleep(0.1)
+
+        except Exception as e:
+            logger.error(f"音声キャプチャエラー: {e}")
+        finally:
+            # Ensure proper cleanup even if an exception occurs
+            if stream is not None:
+                try:
+                    if stream.is_active():
+                        stream.stop_stream()
+                    # Give the audio callback time to complete before closing
+                    # This prevents crashes during Python shutdown (especially with Python 3.13 GIL)
+                    time.sleep(0.2)
+                    stream.close()
+                except Exception as e:
+                    logger.error(f"ストリームクローズエラー: {e}")
+
+            if audio is not None:
+                try:
+                    audio.terminate()
+                except Exception as e:
+                    logger.error(f"PyAudio終了エラー: {e}")
+
+            logger.info("音声キャプチャスレッド終了")
 
     @staticmethod
     def get_input_device_index(input_device):
