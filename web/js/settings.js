@@ -4,9 +4,10 @@
  * Handles loading, saving, and managing advanced configuration settings.
  */
 
-import { serverConfig, setServerConfig, setIsRunning, DOM } from './state.js';
+import { serverConfig, setServerConfig, setIsRunning, DOM, textPairs } from './state.js';
 import { updateStatus, updateUIForMode, showToast } from './ui.js';
 import { loadAudioDevices } from './audio-devices.js';
+import { updatePairDisplay } from './text-display.js';
 
 /**
  * Load server configuration
@@ -164,6 +165,19 @@ function populateAdvancedSettings(config) {
         document.getElementById('contextWindowSize').value = windowSize;
         document.getElementById('contextWindowSizeValue').textContent = `${windowSize} sentences`;
     }
+
+    // Display Options
+    if (config.output) {
+        const showTimestampElem = document.getElementById('showTimestamp');
+        const showLanguageElem = document.getElementById('showLanguage');
+
+        if (showTimestampElem) {
+            showTimestampElem.checked = config.output.show_timestamp ?? true;
+        }
+        if (showLanguageElem) {
+            showLanguageElem.checked = config.output.show_language ?? true;
+        }
+    }
 }
 
 /**
@@ -195,20 +209,14 @@ export function setupModeDependentUI() {
     if (!modeElement) return;
 
     const mode = modeElement.value;
-    const translationModelSection = document.getElementById('translationModelSection');
-    const translationParametersSection = document.getElementById('translationParametersSection');
-    const ttsAdvancedSettings = document.getElementById('ttsAdvancedSettings');
+    const translationSettingsSection = document.getElementById('translationSettingsSection');
 
     if (mode === 'translation') {
-        // Translation mode: Show all translation-related sections
-        if (translationModelSection) translationModelSection.style.display = 'block';
-        if (translationParametersSection) translationParametersSection.style.display = 'block';
-        if (ttsAdvancedSettings) ttsAdvancedSettings.style.display = 'block';
+        // Translation mode: Show translation settings section
+        if (translationSettingsSection) translationSettingsSection.style.display = 'block';
     } else {
-        // Transcript mode: Hide translation-related sections
-        if (translationModelSection) translationModelSection.style.display = 'none';
-        if (translationParametersSection) translationParametersSection.style.display = 'none';
-        if (ttsAdvancedSettings) ttsAdvancedSettings.style.display = 'none';
+        // Transcript mode: Hide translation settings section
+        if (translationSettingsSection) translationSettingsSection.style.display = 'none';
     }
 }
 
@@ -223,52 +231,113 @@ export function setupAdvancedSettings() {
     setupModeDependentUI();
 
     // API enabled checkbox toggle (exclusive with local model)
-    document.getElementById('apiEnabled').addEventListener('change', (e) => {
-        const apiServerSettings = document.getElementById('apiServerSettings');
-        const localModelSettings = document.getElementById('localModelSettings');
+    const apiEnabledCheckbox = document.getElementById('apiEnabled');
+    if (apiEnabledCheckbox) {
+        apiEnabledCheckbox.addEventListener('change', (e) => {
+            const apiServerSettings = document.getElementById('apiServerSettings');
+            const localModelSettings = document.getElementById('localModelSettings');
 
-        if (e.target.checked) {
-            // Show API settings, hide local model settings
-            apiServerSettings.classList.remove('hidden');
-            localModelSettings.classList.add('hidden');
-        } else {
-            // Show local model settings, hide API settings
-            apiServerSettings.classList.add('hidden');
-            localModelSettings.classList.remove('hidden');
-        }
-    });
+            if (e.target.checked) {
+                // Show API settings, hide local model settings
+                apiServerSettings.classList.remove('hidden');
+                localModelSettings.classList.add('hidden');
+            } else {
+                // Show local model settings, hide API settings
+                apiServerSettings.classList.add('hidden');
+                localModelSettings.classList.remove('hidden');
+            }
+        });
+    }
 
     // Range input value display updates
-    document.getElementById('silenceThreshold').addEventListener('input', (e) => {
-        document.getElementById('silenceThresholdValue').textContent = e.target.value;
-    });
+    const silenceThresholdInput = document.getElementById('silenceThreshold');
+    if (silenceThresholdInput) {
+        silenceThresholdInput.addEventListener('input', (e) => {
+            document.getElementById('silenceThresholdValue').textContent = e.target.value;
+        });
+    }
 
-    document.getElementById('mediumPause').addEventListener('input', (e) => {
-        document.getElementById('mediumPauseValue').textContent = `${e.target.value}s`;
-    });
+    const mediumPauseInput = document.getElementById('mediumPause');
+    if (mediumPauseInput) {
+        mediumPauseInput.addEventListener('input', (e) => {
+            document.getElementById('mediumPauseValue').textContent = `${e.target.value}s`;
+        });
+    }
 
-    document.getElementById('longPause').addEventListener('input', (e) => {
-        document.getElementById('longPauseValue').textContent = `${e.target.value}s`;
-    });
+    const longPauseInput = document.getElementById('longPause');
+    if (longPauseInput) {
+        longPauseInput.addEventListener('input', (e) => {
+            document.getElementById('longPauseValue').textContent = `${e.target.value}s`;
+        });
+    }
 
-    document.getElementById('temperature').addEventListener('input', (e) => {
-        document.getElementById('temperatureValue').textContent = e.target.value;
-    });
+    const temperatureInput = document.getElementById('temperature');
+    if (temperatureInput) {
+        temperatureInput.addEventListener('input', (e) => {
+            document.getElementById('temperatureValue').textContent = e.target.value;
+        });
+    }
 
-    document.getElementById('contextWindowSize').addEventListener('input', (e) => {
-        document.getElementById('contextWindowSizeValue').textContent = `${e.target.value} sentences`;
-    });
+    const contextWindowSizeInput = document.getElementById('contextWindowSize');
+    if (contextWindowSizeInput) {
+        contextWindowSizeInput.addEventListener('input', (e) => {
+            document.getElementById('contextWindowSizeValue').textContent = `${e.target.value} sentences`;
+        });
+    }
+
+    // Display Options - update display immediately when changed
+    const showTimestampCheckbox = document.getElementById('showTimestamp');
+    const showLanguageCheckbox = document.getElementById('showLanguage');
+
+    console.log('Display Options setup:');
+    console.log('- showTimestamp element:', showTimestampCheckbox);
+    console.log('- showLanguage element:', showLanguageCheckbox);
+
+    if (showTimestampCheckbox) {
+        console.log('Setting up showTimestamp event listener');
+        showTimestampCheckbox.addEventListener('change', () => {
+            console.log('showTimestamp changed, re-rendering pairs...');
+            // Re-render all existing text pairs
+            textPairs.forEach(pair => {
+                updatePairDisplay(pair);
+            });
+        });
+    } else {
+        console.warn('showTimestamp checkbox not found!');
+    }
+
+    if (showLanguageCheckbox) {
+        console.log('Setting up showLanguage event listener');
+        showLanguageCheckbox.addEventListener('change', (e) => {
+            console.log('showLanguage changed:', e.target.checked);
+            console.log('textPairs size:', textPairs.size);
+            // Re-render all existing text pairs
+            textPairs.forEach((pair, pairId) => {
+                console.log('Updating pair:', pairId);
+                updatePairDisplay(pair);
+            });
+            console.log('Done updating all pairs');
+        });
+    } else {
+        console.warn('showLanguage checkbox not found!');
+    }
 
     // Refresh devices button
-    document.getElementById('refreshInputDevices').addEventListener('click', async () => {
-        await loadAudioDevices();
-        showToast('🔄 Audio devices refreshed', 'info', 2000);
-    });
+    const refreshInputDevicesBtn = document.getElementById('refreshInputDevices');
+    if (refreshInputDevicesBtn) {
+        refreshInputDevicesBtn.addEventListener('click', async () => {
+            await loadAudioDevices();
+            showToast('🔄 Audio devices refreshed', 'info', 2000);
+        });
+    }
 
     // Save Advanced Settings button
-    document.getElementById('saveAdvancedSettings').addEventListener('click', async () => {
-        await saveAdvancedSettings();
-    });
+    const saveAdvancedSettingsBtn = document.getElementById('saveAdvancedSettings');
+    if (saveAdvancedSettingsBtn) {
+        saveAdvancedSettingsBtn.addEventListener('click', async () => {
+            await saveAdvancedSettings();
+        });
+    }
 }
 
 /**
@@ -304,7 +373,11 @@ async function saveAdvancedSettings() {
         // Translation Parameters
         'translation.generation.darwin.temperature': parseFloat(document.getElementById('temperature').value),
         'translation.generation.default.temperature': parseFloat(document.getElementById('temperature').value),
-        'translation.context.window_size': parseInt(document.getElementById('contextWindowSize').value)
+        'translation.context.window_size': parseInt(document.getElementById('contextWindowSize').value),
+
+        // Display Options (no restart required)
+        'output.show_timestamp': document.getElementById('showTimestamp')?.checked ?? true,
+        'output.show_language': document.getElementById('showLanguage')?.checked ?? true
     };
 
     // Add platform-specific ASR model field
@@ -313,6 +386,21 @@ async function saveAdvancedSettings() {
     } else {
         updates['models.asr.darwin.model_size'] = document.getElementById('asrModelSize').value;
     }
+
+    // Determine if any settings that require restart were changed
+    const restartRequiredKeys = [
+        'tts.rate', 'tts.volume', 'tts.pitch',
+        'models.translation.darwin.model_path',
+        'models.asr.darwin.model_path', 'models.asr.darwin.model_size',
+        'models.translation.api.enabled', 'models.translation.api.base_url', 'models.translation.api.model',
+        'audio.input_device', 'tts.output_device',
+        'audio.voice_detection.silence_threshold',
+        'audio.dynamic_buffer.medium_pause', 'audio.dynamic_buffer.long_pause',
+        'translation.generation.darwin.temperature', 'translation.generation.default.temperature',
+        'translation.context.window_size'
+    ];
+
+    const changedRestartRequired = Object.keys(updates).some(key => restartRequiredKeys.includes(key));
 
     try {
         const response = await fetch('/api/config/update', {
@@ -325,7 +413,13 @@ async function saveAdvancedSettings() {
 
         if (response.ok) {
             await response.json();  // Parse response but result not needed
-            showToast('✅ Settings saved successfully! Restart recognition for changes to take effect.', 'info', 5000);
+
+            // Show appropriate message based on what was changed
+            if (changedRestartRequired) {
+                showToast('✅ Settings saved successfully! Restart recognition for changes to take effect.', 'info', 5000);
+            } else {
+                showToast('✅ Display settings saved!', 'info', 2000);
+            }
 
             // Reload full config to reflect changes
             await loadFullConfig();

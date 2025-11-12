@@ -114,13 +114,14 @@
                 <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Changes require stopping and restarting recognition</p>
             </div>
 
-            <!-- 1. ASR Model Settings -->
+            <!-- 1. ASR Settings -->
             <div class="settings-section">
                 <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">📢 Speech Recognition Model</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Whisper model for audio transcription</p>
+                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">📢 ASR Settings</label>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Speech recognition model, input device, and voice detection</p>
                 </div>
 
+                <!-- ASR Model -->
                 <div class="settings-group" id="asrModelPathGroup">
                     <label for="asrModelPath">ASR Model Path (Whisper) - macOS:</label>
                     <input type="text" id="asrModelPath" value="mlx-community/whisper-large-v3-turbo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9rem;">
@@ -140,13 +141,55 @@
                     <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Auto-download from Hugging Face</p>
                 </div>
 
+                <!-- Input Device -->
+                <div class="settings-group">
+                    <label for="inputDevice">Input Device (Microphone):</label>
+                    <select id="inputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">Default (Auto-detect)</option>
+                    </select>
+                    <button id="refreshInputDevices" style="margin-top: 8px; padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                        🔄 Refresh Devices
+                    </button>
+                </div>
+
+                <!-- Voice Detection -->
+                <div class="settings-group" style="margin-top: 15px;">
+                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Voice Detection</label>
+                </div>
+
+                <div class="settings-group">
+                    <label for="silenceThreshold">Silence Threshold:</label>
+                    <input type="range" id="silenceThreshold" min="0.001" max="0.05" step="0.001" value="0.005" style="width: 100%;">
+                    <span id="silenceThresholdValue" style="font-size: 0.9rem; color: #666;">0.005</span>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Audio level below this is considered silence</p>
+                </div>
+
+                <div class="settings-group">
+                    <label for="mediumPause">Medium Pause (sentence break):</label>
+                    <input type="range" id="mediumPause" min="0.3" max="2.0" step="0.1" value="0.8" style="width: 100%;">
+                    <span id="mediumPauseValue" style="font-size: 0.9rem; color: #666;">0.8s</span>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Pause duration indicating sentence boundary</p>
+                </div>
+
+                <div class="settings-group">
+                    <label for="longPause">Long Pause (end of speech):</label>
+                    <input type="range" id="longPause" min="0.5" max="3.0" step="0.1" value="1.5" style="width: 100%;">
+                    <span id="longPauseValue" style="font-size: 0.9rem; color: #666;">1.5s</span>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Pause duration indicating end of speech segment</p>
+                </div>
             </div>
 
-            <!-- 2. Translation Model Settings (Translation mode only) -->
-            <div id="translationModelSection" class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <!-- 2. Translation Settings (Translation mode only) -->
+            <div id="translationSettingsSection" class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                 <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">🌐 Translation Model</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Choose either local model or external API server (mutually exclusive)</p>
+                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">🌐 Translation Settings</label>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Translation model, TTS output, and parameters</p>
+                </div>
+
+                <!-- Translation Model -->
+                <div class="settings-group" style="margin-top: 15px;">
+                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Translation Model</label>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Choose either local model or external API server (mutually exclusive)</p>
                 </div>
 
                 <div class="settings-group">
@@ -177,89 +220,18 @@
                         <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Model name configured in API server</p>
                     </div>
                 </div>
-            </div>
 
-            <!-- 3. Translation Parameters (Translation mode only) -->
-            <div id="translationParametersSection" class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">⚙️ Translation Parameters</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Fine-tune translation quality and context</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="temperature">Translation Temperature (creativity):</label>
-                    <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.8" style="width: 100%;">
-                    <span id="temperatureValue" style="font-size: 0.9rem; color: #666;">0.8</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Higher = more creative, Lower = more conservative</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="contextWindowSize">Context Window Size:</label>
-                    <input type="range" id="contextWindowSize" min="1" max="20" step="1" value="8" style="width: 100%;">
-                    <span id="contextWindowSizeValue" style="font-size: 0.9rem; color: #666;">8 sentences</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Number of previous sentences to consider for context</p>
-                </div>
-            </div>
-
-            <!-- 4. Audio Input/Output Settings -->
-            <div class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">🎤 Audio Devices</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Select microphone and speaker (must be different to avoid feedback)</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="inputDevice">Input Device (Microphone):</label>
-                    <select id="inputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-                        <option value="">Default (Auto-detect)</option>
-                    </select>
-                    <button id="refreshInputDevices" style="margin-top: 8px; padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
-                        🔄 Refresh Devices
-                    </button>
-                </div>
-
-                <div class="settings-group">
+                <!-- Output Device (TTS Speaker) -->
+                <div class="settings-group" id="outputDeviceGroup">
                     <label for="outputDevice">Output Device (TTS Speaker):</label>
                     <select id="outputDevice" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
                         <option value="">Default (System Speaker)</option>
                     </select>
                 </div>
-            </div>
 
-            <!-- 5. Audio Detection Settings -->
-            <div class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">🔊 Audio Detection</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Voice activity detection and speech segmentation</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="silenceThreshold">Silence Threshold:</label>
-                    <input type="range" id="silenceThreshold" min="0.001" max="0.05" step="0.001" value="0.005" style="width: 100%;">
-                    <span id="silenceThresholdValue" style="font-size: 0.9rem; color: #666;">0.005</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Audio level below this is considered silence</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="mediumPause">Medium Pause (sentence break):</label>
-                    <input type="range" id="mediumPause" min="0.3" max="2.0" step="0.1" value="0.8" style="width: 100%;">
-                    <span id="mediumPauseValue" style="font-size: 0.9rem; color: #666;">0.8s</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Pause duration indicating sentence boundary</p>
-                </div>
-
-                <div class="settings-group">
-                    <label for="longPause">Long Pause (end of speech):</label>
-                    <input type="range" id="longPause" min="0.5" max="3.0" step="0.1" value="1.5" style="width: 100%;">
-                    <span id="longPauseValue" style="font-size: 0.9rem; color: #666;">1.5s</span>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Pause duration indicating end of speech segment</p>
-                </div>
-            </div>
-
-            <!-- 6. TTS Settings (Translation mode only) -->
-            <div id="ttsAdvancedSettings" class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="settings-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 1rem; color: #667eea; font-weight: 600;">🔈 Text-to-Speech</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Voice synthesis settings for translated text</p>
+                <!-- TTS Settings -->
+                <div class="settings-group" style="margin-top: 15px;">
+                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Text-to-Speech Settings</label>
                 </div>
 
                 <div class="settings-group">
@@ -297,13 +269,32 @@
                         <option value="+50Hz">+50Hz (Very High)</option>
                     </select>
                 </div>
+
+                <!-- Translation Parameters -->
+                <div class="settings-group" style="margin-top: 15px;">
+                    <label style="font-size: 0.95rem; font-weight: 600; color: #555;">Translation Parameters</label>
+                </div>
+
+                <div class="settings-group">
+                    <label for="temperature">Translation Temperature (creativity):</label>
+                    <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.8" style="width: 100%;">
+                    <span id="temperatureValue" style="font-size: 0.9rem; color: #666;">0.8</span>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Higher = more creative, Lower = more conservative</p>
+                </div>
+
+                <div class="settings-group">
+                    <label for="contextWindowSize">Context Window Size:</label>
+                    <input type="range" id="contextWindowSize" min="1" max="20" step="1" value="8" style="width: 100%;">
+                    <span id="contextWindowSizeValue" style="font-size: 0.9rem; color: #666;">8 sentences</span>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 4px;">Number of previous sentences to consider for context</p>
+                </div>
             </div>
 
-            <!-- 7. Display Options -->
+            <!-- 3. Display Options -->
             <div class="settings-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                 <div class="settings-group" style="margin-bottom: 15px;">
                     <label style="font-size: 1rem; color: #667eea; font-weight: 600;">👁️ Display Options</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Control what information is shown in the output</p>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Control what information is shown in the output (changes apply immediately)</p>
                 </div>
                 <div class="checkbox-wrapper">
                     <input type="checkbox" id="showTimestamp" checked>
@@ -311,7 +302,7 @@
                 </div>
                 <div class="checkbox-wrapper">
                     <input type="checkbox" id="showLanguage" checked>
-                    <label for="showLanguage">Show Language Code</label>
+                    <label for="showLanguage">Show Source Language</label>
                 </div>
             </div>
 
