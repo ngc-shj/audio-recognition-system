@@ -46,6 +46,7 @@ h1 {
     display: flex;
     align-items: center;
     gap: 15px;
+    margin-left: auto;
 }
 
 .status-controls-wrapper {
