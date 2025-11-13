@@ -697,16 +697,16 @@ if __name__ == "__main__":
     logger.info(f"基本情報:")
     logger.info(f"  プロファイル: {config.profile}")
     logger.info(f"  プラットフォーム: {config.platform}")
-    
-    logger.info("\n🎵 音声設定:")
+
+    logger.info("🎵 音声設定:")
     audio = config.audio
     logger.info(f"  サンプルレート: {audio.sample_rate} Hz")
     logger.info(f"  チャンネル: {audio.channels}")
     logger.info(f"  フォーマット: {audio.format_str}")
     logger.info(f"  バッファサイズ: {audio.buffer_size}")
     logger.info(f"  NumPy dtype: {audio.numpy_dtype}")
-    
-    logger.info("\nモデル設定:")
+
+    logger.info("モデル設定:")
     asr_model = config.get_model_config('asr')
     logger.info(f"  ASRモデル: {asr_model.model_path}")
     logger.info(f"  モデルサイズ: {asr_model.model_size}")
@@ -721,26 +721,26 @@ if __name__ == "__main__":
         logger.info(f"    コンテキストウィンドウ: {trans_model.gguf.n_ctx}")
         logger.info(f"    GPUレイヤー数: {trans_model.gguf.n_gpu_layers}")
         logger.info(f"    CPUスレッド数: {trans_model.gguf.n_threads}")
-    
-    logger.info("\n翻訳設定:")
+
+    logger.info("翻訳設定:")
     trans = config.translation
     logger.info(f"  有効: {trans.enabled}")
     logger.info(f"  バッチサイズ: {trans.batch_size}")
     logger.info(f"  コンテキストウィンドウ: {trans.context_window_size}")
-    
-    logger.info("\n言語設定:")
+
+    logger.info("言語設定:")
     lang = config.language
     logger.info(f"  {lang.source} → {lang.target}")
-    
-    logger.info("\n出力設定:")
+
+    logger.info("出力設定:")
     output = config.output
     logger.info(f"  ディレクトリ: {output.directory}")
     logger.info(f"  音声認識ログ: {output.recognized_audio}")
     logger.info(f"  翻訳ログ: {output.translated_text}")
-    
-    logger.info("\nリソース設定:")
+
+    logger.info("リソース設定:")
     res = config.resources
     logger.info(f"  スレッド: {res.min_threads}-{res.max_threads}")
-    
-    logger.info("\nすべての設定が型安全に取得できます！")
+
+    logger.info("すべての設定が型安全に取得できます！")
 

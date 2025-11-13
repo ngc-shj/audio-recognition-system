@@ -374,7 +374,7 @@ class Translation:
                 while self.failed_translations and len(texts_to_translate) < self.batch_size:
                     texts_to_translate.append(self.failed_translations.pop(0))
                     if self.debug:
-                        logger.info(f"\n再翻訳を試みます: {texts_to_translate[-1]}\n")
+                        logger.info(f"再翻訳を試みます: {texts_to_translate[-1]}")
 
                 # キューから新しいテキストを追加
                 # 最初のアイテムはtimeout付きで待機（CPU効率化）
@@ -440,7 +440,7 @@ class Translation:
                             self.web_ui.send_translated_text(translated_text, processed_text, pair_id)
                     else:
                         if self.debug:
-                            logger.info(f"\n翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}\n")
+                            logger.info(f"翻訳エラー: 有効な翻訳を生成できませんでした。原文: {original_text}")
                         self.handle_translation_error(item)
                 
                 # ファイルに記録（バッチ書き込みでI/O効率化）

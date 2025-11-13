@@ -69,7 +69,7 @@ class ResourceManager:
     def print_system_info(self):
         """システム情報を表示"""
         info = self.get_system_info()
-        logger.info("\n" + "="*50)
+        logger.info("="*50)
         logger.info("システム情報")
         logger.info("="*50)
         logger.info(f"プラットフォーム: {info['platform']}")
