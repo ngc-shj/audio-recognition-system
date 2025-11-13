@@ -102,16 +102,28 @@ function handleMessage(data) {
 function handleStatusMessage(data) {
     const { status } = data;
 
+    // Get mode toggle buttons
+    const transcriptModeBtn = document.getElementById('transcriptModeBtn');
+    const translationModeBtn = document.getElementById('translationModeBtn');
+
     if (status === 'running') {
         setIsRunning(true);
         updateStatus('running', 'Recognition Running');
         DOM.startBtn.disabled = true;
         DOM.stopBtn.disabled = false;
+
+        // Disable mode toggle buttons during recognition
+        if (transcriptModeBtn) transcriptModeBtn.disabled = true;
+        if (translationModeBtn) translationModeBtn.disabled = true;
     } else if (status === 'stopped') {
         setIsRunning(false);
         updateStatus('connected', 'Connected');
         DOM.startBtn.disabled = false;
         DOM.stopBtn.disabled = true;
+
+        // Enable mode toggle buttons when stopped
+        if (transcriptModeBtn) transcriptModeBtn.disabled = false;
+        if (translationModeBtn) translationModeBtn.disabled = false;
     }
 }
 
