@@ -61,20 +61,16 @@ function closeSettings() {
  * Update UI based on mode (Translation vs Transcript)
  */
 export function updateUIForMode(mode) {
-    const outputControls = document.getElementById('outputControls');
+    // Update TTS toggle visibility (only show in translation mode)
+    const headerTtsToggle = document.getElementById('headerTtsToggle');
+    if (headerTtsToggle) {
+        headerTtsToggle.style.display = mode === 'translation' ? 'inline-block' : 'none';
+    }
 
-    if (mode === 'transcript') {
-        // Transcript mode: Hide translation settings and output controls
-        DOM.translationSettings.classList.add('hidden');
-        if (outputControls) {
-            outputControls.style.display = 'none';
-        }
-    } else {
-        // Translation mode: Show translation settings and output controls
-        DOM.translationSettings.classList.remove('hidden');
-        if (outputControls) {
-            outputControls.style.display = 'flex';
-        }
+    // Update toggle source button visibility (only show in translation mode)
+    const headerToggleSourceBtn = document.getElementById('headerToggleSourceBtn');
+    if (headerToggleSourceBtn) {
+        headerToggleSourceBtn.style.display = mode === 'translation' ? 'inline-block' : 'none';
     }
 
     // Update advanced settings UI based on mode
@@ -283,6 +279,7 @@ export function setupUIEventListeners() {
     const transcriptLangSelector = document.getElementById('transcriptLangSelector');
     const translationLangSelector = document.getElementById('translationLangSelector');
     const headerTranscriptLang = document.getElementById('headerTranscriptLang');
+    const headerTtsToggle = document.getElementById('headerTtsToggle');
 
     if (transcriptModeBtn && translationModeBtn) {
         transcriptModeBtn.addEventListener('click', async () => {
@@ -413,31 +410,34 @@ export function setupUIEventListeners() {
         });
     }
 
-    // Toggle source language button in output controls (Translation mode only - legacy)
-    const toggleSourceBtn = document.getElementById('toggleSourceBtn');
-    const toggleSourceIcon = document.getElementById('toggleSourceIcon');
-    const toggleSourceText = document.getElementById('toggleSourceText');
+    // Header TTS toggle button (already declared above)
+    const headerTtsIcon = document.getElementById('headerTtsIcon');
 
-    if (toggleSourceBtn && showSourceLangCheckbox) {
-        toggleSourceBtn.addEventListener('click', () => {
-            // Toggle the checkbox
-            showSourceLangCheckbox.checked = !showSourceLangCheckbox.checked;
+    if (headerTtsToggle && DOM.ttsEnabled) {
+        // Set initial icon based on current TTS state
+        headerTtsIcon.textContent = DOM.ttsEnabled.checked ? '🔊' : '🔇';
+        headerTtsToggle.classList.toggle('active', DOM.ttsEnabled.checked);
 
-            // Update button text and icon
-            if (showSourceLangCheckbox.checked) {
-                toggleSourceIcon.textContent = '👁️';
-                toggleSourceText.textContent = 'Hide Source';
-                if (headerToggleSourceIcon) headerToggleSourceIcon.textContent = '👁️';
-            } else {
-                toggleSourceIcon.textContent = '👁️‍🗨️';
-                toggleSourceText.textContent = 'Show Source';
-                if (headerToggleSourceIcon) headerToggleSourceIcon.textContent = '👁️‍🗨️';
+        headerTtsToggle.addEventListener('click', async () => {
+            // Toggle TTS state
+            DOM.ttsEnabled.checked = !DOM.ttsEnabled.checked;
+
+            // Update icon and active state
+            headerTtsIcon.textContent = DOM.ttsEnabled.checked ? '🔊' : '🔇';
+            headerTtsToggle.classList.toggle('active', DOM.ttsEnabled.checked);
+
+            // Send to server if connected and running
+            if (isConnected && ws && isRunning) {
+                sendSettingsToServer({
+                    source_lang: DOM.sourceLang.value,
+                    target_lang: DOM.targetLang.value,
+                    tts_enabled: DOM.ttsEnabled.checked
+                });
+                showToast(`🔊 TTS ${DOM.ttsEnabled.checked ? 'Enabled' : 'Disabled'}`, 'info', 2000);
             }
 
-            // Re-render all existing text pairs
-            textPairs.forEach(pair => {
-                updatePairDisplay(pair);
-            });
+            setServerConfig({ tts_enabled: DOM.ttsEnabled.checked });
         });
     }
+
 }

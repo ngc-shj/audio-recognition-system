@@ -25,20 +25,33 @@ header {
     color: white;
     padding: 12px 20px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 15px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
 h1 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     margin: 0;
+    font-weight: 600;
 }
 
 .header-right {
     display: flex;
     align-items: center;
     gap: 15px;
+}
+
+.status-controls-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .status-bar {
@@ -61,13 +74,17 @@ h1 {
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
+    font-size: 1.2rem;
     font-weight: 500;
     cursor: pointer;
-    padding: 6px 12px;
+    padding: 6px 10px;
     border-radius: 18px;
     transition: all 0.2s ease;
     white-space: nowrap;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .mode-btn:hover {
@@ -76,17 +93,23 @@ h1 {
 }
 
 .mode-btn.active {
-    background: rgba(255, 255, 255, 0.25);
-    color: white;
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
     font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.lang-toggle {
+.lang-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+}
+
+.lang-selector-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     background: rgba(255, 255, 255, 0.1);
-    padding: 4px 12px;
+    padding: 4px 10px;
     border-radius: 20px;
     font-size: 0.85rem;
 }
@@ -465,4 +488,192 @@ button:disabled {
 
 .toast.warning {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* Responsive Design */
+@media screen and (max-width: 900px) {
+    header {
+        padding: 8px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* First row: Title + Mode + Language controls (all in .header-left) */
+    .header-left {
+        flex: 0 1 auto;
+        order: 1;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* Second row: Status + Buttons (all in .header-right) - right aligned */
+    .header-right {
+        order: 2;
+        flex: 0 0 auto;
+        margin-left: auto;
+    }
+
+    .status-controls-wrapper {
+        gap: 10px;
+    }
+
+    .status-bar {
+        font-size: 0.8rem;
+    }
+
+    .lang-selector-group {
+        gap: 3px;
+        padding: 3px 6px;
+        font-size: 0.75rem;
+    }
+
+    .lang-select {
+        font-size: 0.75rem;
+        padding: 3px 5px;
+        min-width: 50px;
+    }
+
+    .lang-arrow {
+        font-size: 0.7rem;
+    }
+
+    .lang-swap-btn {
+        font-size: 0.85rem;
+        padding: 3px 5px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .control-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        min-width: 52px;
+    }
+
+    h1 {
+        font-size: 1rem;
+    }
+
+    .mode-btn {
+        font-size: 0.95rem;
+        padding: 4px 7px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    header {
+        padding: 8px 12px;
+    }
+
+    h1 {
+        font-size: 1rem;
+    }
+
+    .header-left {
+        gap: 8px;
+    }
+
+    .header-right {
+        gap: 8px;
+        order: 2;
+    }
+
+    .lang-controls {
+        width: auto;
+        flex: 1;
+    }
+
+    .lang-selector-group {
+        gap: 3px;
+        padding: 3px 6px;
+        font-size: 0.75rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .lang-select {
+        font-size: 0.75rem;
+        padding: 3px 4px;
+        min-width: 50px;
+        max-width: 70px;
+    }
+
+    .lang-arrow {
+        font-size: 0.65rem;
+    }
+
+    .lang-swap-btn {
+        font-size: 0.85rem;
+        padding: 3px 5px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .status-bar {
+        font-size: 0.8rem;
+    }
+
+    .control-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        min-width: 60px;
+    }
+
+    .mode-btn {
+        font-size: 0.95rem;
+        padding: 4px 7px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    header {
+        padding: 8px 10px;
+    }
+
+    h1 {
+        font-size: 0.9rem;
+    }
+
+    .mode-toggle {
+        gap: 2px;
+    }
+
+    .mode-btn {
+        font-size: 0.9rem;
+        padding: 4px 6px;
+    }
+
+    .lang-selector-group {
+        font-size: 0.7rem;
+        padding: 2px 4px;
+    }
+
+    .lang-select {
+        font-size: 0.7rem;
+        padding: 2px 3px;
+        min-width: 45px;
+        max-width: 60px;
+    }
+
+    .lang-arrow {
+        font-size: 0.6rem;
+    }
+
+    .lang-swap-btn {
+        font-size: 0.8rem;
+        padding: 2px 4px;
+        width: 22px;
+        height: 22px;
+    }
+
+    .control-btn {
+        padding: 5px 8px;
+        font-size: 0.75rem;
+        min-width: 50px;
+    }
 }

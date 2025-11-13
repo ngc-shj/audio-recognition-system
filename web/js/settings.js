@@ -32,7 +32,27 @@ export async function loadServerConfig() {
                 DOM.headerTargetLang.value = config.target_lang;
             }
 
-            // Update UI based on mode
+            // Update mode toggle buttons' active state
+            const transcriptModeBtn = document.getElementById('transcriptModeBtn');
+            const translationModeBtn = document.getElementById('translationModeBtn');
+            const transcriptLangSelector = document.getElementById('transcriptLangSelector');
+            const translationLangSelector = document.getElementById('translationLangSelector');
+
+            if (transcriptModeBtn && translationModeBtn) {
+                if (config.mode === 'transcript') {
+                    transcriptModeBtn.classList.add('active');
+                    translationModeBtn.classList.remove('active');
+                    if (transcriptLangSelector) transcriptLangSelector.style.display = 'flex';
+                    if (translationLangSelector) translationLangSelector.style.display = 'none';
+                } else {
+                    translationModeBtn.classList.add('active');
+                    transcriptModeBtn.classList.remove('active');
+                    if (transcriptLangSelector) transcriptLangSelector.style.display = 'none';
+                    if (translationLangSelector) translationLangSelector.style.display = 'flex';
+                }
+            }
+
+            // Update UI based on mode (this will show/hide TTS and eye icons)
             updateUIForMode(config.mode);
         }
     } catch (error) {

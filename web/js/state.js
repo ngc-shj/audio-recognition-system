@@ -72,7 +72,6 @@ export const DOM = {
     sourceLang: document.getElementById('sourceLang'),
     targetLang: document.getElementById('targetLang'),
     ttsEnabled: document.getElementById('ttsEnabled'),
-    translationSettings: document.getElementById('translationSettings'),
 
     // Settings panel
     settingsBtn: document.getElementById('settingsBtn'),

@@ -12,22 +12,22 @@
 
     <div class="container">
         <header>
-            <h1>🎤 Audio Recognition</h1>
-            <div class="header-right">
+            <div class="header-left">
+                <h1>🎤 ARS</h1>
                 <!-- Mode Toggle -->
                 <div class="mode-toggle">
-                    <button class="mode-btn" id="transcriptModeBtn" data-mode="transcript">
-                        🎤 Transcript
+                    <button class="mode-btn" id="transcriptModeBtn" data-mode="transcript" title="Transcript Mode">
+                        🎤
                     </button>
-                    <button class="mode-btn active" id="translationModeBtn" data-mode="translation">
-                        🌐 Translation
+                    <button class="mode-btn active" id="translationModeBtn" data-mode="translation" title="Translation Mode">
+                        🌐
                     </button>
                 </div>
 
                 <!-- Language Selection (mode-dependent) -->
-                <div class="lang-toggle" id="headerLangToggle">
+                <div class="lang-controls">
                     <!-- Transcript mode: Single language selector -->
-                    <div id="transcriptLangSelector" style="display: none;">
+                    <div id="transcriptLangSelector" class="lang-selector-group" style="display: none;">
                         <select class="lang-select" id="headerTranscriptLang">
                             <option value="en">English</option>
                             <option value="ja">Japanese</option>
@@ -39,8 +39,8 @@
                         </select>
                     </div>
 
-                    <!-- Translation mode: Source → Target with swap button -->
-                    <div id="translationLangSelector" style="display: flex; align-items: center; gap: 4px;">
+                    <!-- Translation mode: Source → Target with controls -->
+                    <div id="translationLangSelector" class="lang-selector-group">
                         <select class="lang-select" id="headerSourceLang">
                             <option value="en">EN</option>
                             <option value="ja">JA</option>
@@ -50,7 +50,7 @@
                             <option value="zh">ZH</option>
                             <option value="ko">KO</option>
                         </select>
-                        <button class="lang-swap-btn" id="langSwapBtn">⇄</button>
+                        <span class="lang-arrow">→</span>
                         <select class="lang-select" id="headerTargetLang">
                             <option value="ja">JA</option>
                             <option value="en">EN</option>
@@ -60,34 +60,37 @@
                             <option value="zh">ZH</option>
                             <option value="ko">KO</option>
                         </select>
-                        <button id="headerToggleSourceBtn" type="button" style="padding: 4px 8px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin-left: 4px;">
+                        <button class="lang-swap-btn" id="langSwapBtn" title="Swap Languages">⇄</button>
+                        <button id="headerToggleSourceBtn" type="button" class="lang-swap-btn" title="Show/Hide Source Text (原文の表示/非表示)">
                             <span id="headerToggleSourceIcon">👁️</span>
+                        </button>
+                        <button class="lang-swap-btn" id="headerTtsToggle" title="Text-to-Speech On/Off">
+                            <span id="headerTtsIcon">🔊</span>
                         </button>
                     </div>
                 </div>
+            </div>
 
-                <div class="status-bar">
-                    <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Disconnected</span>
-                </div>
-                <div class="controls">
-                    <button class="btn-start" id="startBtn" disabled>▶ Start</button>
-                    <button class="btn-stop" id="stopBtn" disabled>⏹ Stop</button>
-                    <button class="btn-clear" id="clearBtn">Clear</button>
-                    <button class="hamburger-btn" id="settingsBtn">⚙</button>
+            <div class="header-right">
+                <div class="status-controls-wrapper">
+                    <div class="status-bar">
+                        <div class="status-dot" id="statusDot"></div>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                    <div class="controls">
+                        <button class="btn-start" id="startBtn" disabled>▶ Start</button>
+                        <button class="btn-stop" id="stopBtn" disabled>⏹ Stop</button>
+                        <button class="btn-clear" id="clearBtn">Clear</button>
+                        <button class="hamburger-btn" id="settingsBtn">⚙</button>
+                    </div>
                 </div>
             </div>
         </header>
 
         <div class="main-content">
-            <!-- Output Controls (Translation mode only) -->
-            <div id="outputControls" style="padding: 8px 12px; background: #f5f5f5; border-bottom: 1px solid #ddd; display: none; justify-content: flex-end; align-items: center; gap: 8px;">
-                <input type="checkbox" id="showSourceLang" checked style="display: none;">
-                <button id="toggleSourceBtn" type="button" style="padding: 6px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                    <span id="toggleSourceIcon">👁️</span>
-                    <span id="toggleSourceText">Hide Source</span>
-                </button>
-            </div>
+            <!-- Hidden checkbox for source visibility state -->
+            <input type="checkbox" id="showSourceLang" checked style="display: none;">
+
             <div class="text-output" id="liveOutput">
                 <p style="color: #999; text-align: center; padding: 20px;">
                     Waiting for recognition to start...
@@ -101,51 +104,27 @@
                 <button class="close-btn" id="closeSettingsBtn">✕</button>
             </div>
 
-            <!-- Hidden mode field for backend compatibility -->
+            <!-- Hidden fields for backend compatibility (controlled by header) -->
             <input type="hidden" id="mode" value="translation">
-
-            <!-- Source Language (always visible) -->
-            <div class="settings-group">
-                <label for="sourceLang">Source Language:</label>
-                <select id="sourceLang">
-                    <option value="en">English</option>
-                    <option value="ja">Japanese</option>
-                    <option value="es">Spanish</option>
-                    <option value="fr">French</option>
-                    <option value="de">German</option>
-                    <option value="zh">Chinese</option>
-                    <option value="ko">Korean</option>
-                </select>
-            </div>
-
-            <!-- Translation Settings (only for translation mode) -->
-            <div id="translationSettings" class="settings-section">
-                <div class="settings-group">
-                    <label for="targetLang">Target Language (Translation):</label>
-                    <select id="targetLang">
-                        <option value="ja">Japanese</option>
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="de">German</option>
-                        <option value="zh">Chinese</option>
-                        <option value="ko">Korean</option>
-                    </select>
-                </div>
-
-                <div class="settings-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="ttsEnabled" checked>
-                        <label for="ttsEnabled">Enable Text-to-Speech (Translation)</label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Advanced Settings Header -->
-            <div class="settings-group" style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
-                <label style="font-size: 1.1rem; color: #667eea;">🔧 Advanced Settings</label>
-                <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Configure speech recognition, translation, and display options</p>
-            </div>
+            <select id="sourceLang" style="display: none;">
+                <option value="en">English</option>
+                <option value="ja">Japanese</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="zh">Chinese</option>
+                <option value="ko">Korean</option>
+            </select>
+            <select id="targetLang" style="display: none;">
+                <option value="ja">Japanese</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="zh">Chinese</option>
+                <option value="ko">Korean</option>
+            </select>
+            <input type="checkbox" id="ttsEnabled" checked style="display: none;">
 
             <!-- ⚡ REALTIME SETTINGS SECTION -->
             <div id="realtimeSettingsSection" style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-left: 4px solid #4caf50; border-radius: 8px;">
