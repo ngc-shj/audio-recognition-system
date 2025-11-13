@@ -162,6 +162,18 @@ h1 {
     transform: rotate(180deg);
 }
 
+.lang-swap-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.lang-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .status-dot {
     width: 8px;
     height: 8px;
