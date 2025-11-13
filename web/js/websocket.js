@@ -102,16 +102,46 @@ function handleMessage(data) {
 function handleStatusMessage(data) {
     const { status } = data;
 
+    // Get mode toggle buttons
+    const transcriptModeBtn = document.getElementById('transcriptModeBtn');
+    const translationModeBtn = document.getElementById('translationModeBtn');
+
+    // Get language selectors
+    const headerSourceLang = DOM.headerSourceLang;
+    const headerTargetLang = DOM.headerTargetLang;
+    const headerTranscriptLang = document.getElementById('headerTranscriptLang');
+    const langSwapBtn = DOM.langSwapBtn;
+
     if (status === 'running') {
         setIsRunning(true);
         updateStatus('running', 'Recognition Running');
         DOM.startBtn.disabled = true;
         DOM.stopBtn.disabled = false;
+
+        // Disable mode toggle buttons during recognition
+        if (transcriptModeBtn) transcriptModeBtn.disabled = true;
+        if (translationModeBtn) translationModeBtn.disabled = true;
+
+        // Disable language selectors during recognition
+        if (headerSourceLang) headerSourceLang.disabled = true;
+        if (headerTargetLang) headerTargetLang.disabled = true;
+        if (headerTranscriptLang) headerTranscriptLang.disabled = true;
+        if (langSwapBtn) langSwapBtn.disabled = true;
     } else if (status === 'stopped') {
         setIsRunning(false);
         updateStatus('connected', 'Connected');
         DOM.startBtn.disabled = false;
         DOM.stopBtn.disabled = true;
+
+        // Enable mode toggle buttons when stopped
+        if (transcriptModeBtn) transcriptModeBtn.disabled = false;
+        if (translationModeBtn) translationModeBtn.disabled = false;
+
+        // Enable language selectors when stopped
+        if (headerSourceLang) headerSourceLang.disabled = false;
+        if (headerTargetLang) headerTargetLang.disabled = false;
+        if (headerTranscriptLang) headerTranscriptLang.disabled = false;
+        if (langSwapBtn) langSwapBtn.disabled = false;
     }
 }
 

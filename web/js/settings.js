@@ -26,13 +26,39 @@ export async function loadServerConfig() {
             if (DOM.sourceLang && config.source_lang) {
                 DOM.sourceLang.value = config.source_lang;
                 DOM.headerSourceLang.value = config.source_lang;
+
+                // Also sync transcript language selector
+                const headerTranscriptLang = document.getElementById('headerTranscriptLang');
+                if (headerTranscriptLang) {
+                    headerTranscriptLang.value = config.source_lang;
+                }
             }
             if (DOM.targetLang && config.target_lang) {
                 DOM.targetLang.value = config.target_lang;
                 DOM.headerTargetLang.value = config.target_lang;
             }
 
-            // Update UI based on mode
+            // Update mode toggle buttons' active state
+            const transcriptModeBtn = document.getElementById('transcriptModeBtn');
+            const translationModeBtn = document.getElementById('translationModeBtn');
+            const transcriptLangSelector = document.getElementById('transcriptLangSelector');
+            const translationLangSelector = document.getElementById('translationLangSelector');
+
+            if (transcriptModeBtn && translationModeBtn) {
+                if (config.mode === 'transcript') {
+                    transcriptModeBtn.classList.add('active');
+                    translationModeBtn.classList.remove('active');
+                    if (transcriptLangSelector) transcriptLangSelector.style.display = 'flex';
+                    if (translationLangSelector) translationLangSelector.style.display = 'none';
+                } else {
+                    translationModeBtn.classList.add('active');
+                    transcriptModeBtn.classList.remove('active');
+                    if (transcriptLangSelector) transcriptLangSelector.style.display = 'none';
+                    if (translationLangSelector) translationLangSelector.style.display = 'flex';
+                }
+            }
+
+            // Update UI based on mode (this will show/hide TTS and eye icons)
             updateUIForMode(config.mode);
         }
     } catch (error) {
@@ -48,18 +74,49 @@ export async function checkRecognitionStatus() {
         const response = await fetch('/api/status');
         if (response.ok) {
             const status = await response.json();
+
+            // Get mode toggle buttons
+            const transcriptModeBtn = document.getElementById('transcriptModeBtn');
+            const translationModeBtn = document.getElementById('translationModeBtn');
+
+            // Get language selectors
+            const headerSourceLang = DOM.headerSourceLang;
+            const headerTargetLang = DOM.headerTargetLang;
+            const headerTranscriptLang = document.getElementById('headerTranscriptLang');
+            const langSwapBtn = DOM.langSwapBtn;
+
             if (status.recognition_active) {
                 // Recognition running
                 setIsRunning(true);
                 updateStatus('running', 'Recognition Running');
                 DOM.startBtn.disabled = true;
                 DOM.stopBtn.disabled = false;
+
+                // Disable mode toggle buttons during recognition
+                if (transcriptModeBtn) transcriptModeBtn.disabled = true;
+                if (translationModeBtn) translationModeBtn.disabled = true;
+
+                // Disable language selectors during recognition
+                if (headerSourceLang) headerSourceLang.disabled = true;
+                if (headerTargetLang) headerTargetLang.disabled = true;
+                if (headerTranscriptLang) headerTranscriptLang.disabled = true;
+                if (langSwapBtn) langSwapBtn.disabled = true;
             } else {
                 // Recognition stopped
                 setIsRunning(false);
                 updateStatus('connected', 'Connected');
                 DOM.startBtn.disabled = false;
                 DOM.stopBtn.disabled = true;
+
+                // Enable mode toggle buttons when stopped
+                if (transcriptModeBtn) transcriptModeBtn.disabled = false;
+                if (translationModeBtn) translationModeBtn.disabled = false;
+
+                // Enable language selectors when stopped
+                if (headerSourceLang) headerSourceLang.disabled = false;
+                if (headerTargetLang) headerTargetLang.disabled = false;
+                if (headerTranscriptLang) headerTranscriptLang.disabled = false;
+                if (langSwapBtn) langSwapBtn.disabled = false;
             }
         }
     } catch (error) {
