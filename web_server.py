@@ -177,7 +177,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif message_type == "stop":
                 # 音声認識停止
-                logger.info(f"\nStop request received. Running: {server_state.is_recognition_running}, System: {server_state.recognition_system is not None}")
+                logger.info(f"Stop request received. Running: {server_state.is_recognition_running}, System: {server_state.recognition_system is not None}")
 
                 if server_state.is_recognition_running:
                     # すぐにフラグをクリアして、UIが正しい状態を表示できるようにする
@@ -547,7 +547,7 @@ def run_recognition_system(config_path: str = "config.yaml",
             # メイン関数を実行（ブロッキング）
             main_module.main()
     except KeyboardInterrupt:
-        logger.info("\nRecognition system interrupted")
+        logger.info("Recognition system interrupted")
     except Exception as e:
         logger.info(f"Error starting recognition system: {e}")
         import traceback
@@ -604,7 +604,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8000,
     # 音声認識システムを別スレッドで起動
     if start_recognition:
         mode_name = "音声認識＋翻訳" if mode == "translation" else "音声認識のみ"
-        logger.info(f"\n{mode_name}システムを起動しています...")
+        logger.info(f"{mode_name}システムを起動しています...")
         recognition_thread = threading.Thread(
             target=run_recognition_system,
             args=(config_path, source_lang, target_lang, web_ui_url, mode),

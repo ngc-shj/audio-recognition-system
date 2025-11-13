@@ -229,7 +229,7 @@ def main():
                 logger.warning(f" Web UI Bridge initialization failed: {e}")
                 web_ui = None
         elif args.web_ui and not WEB_UI_AVAILABLE:
-            logger.info("\nWarning: Web UI Bridge is not available. Install required dependencies.")
+            logger.info("Warning: Web UI Bridge is not available. Install required dependencies.")
 
         # =====================================
         # リソースマネージャー

@@ -73,7 +73,7 @@ class SpeechRecognition:
                 normalized_audio = self.normalize_audio(audio_data)
                 
                 if self.debug:
-                    logger.info("\n音声認識処理開始")
+                    logger.info("音声認識処理開始")
                     debug_file = os.path.join(
                         self.debug_audio_dir,
                         f"debug_audio_{int(time.time() * 1000)}.wav"
