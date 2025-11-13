@@ -276,9 +276,145 @@ export function setupUIEventListeners() {
         setServerConfig({ target_lang: newLang });
     });
 
-    // Toggle source language button (Translation mode only)
-    const toggleSourceBtn = document.getElementById('toggleSourceBtn');
+    // Header mode toggle buttons
+    const transcriptModeBtn = document.getElementById('transcriptModeBtn');
+    const translationModeBtn = document.getElementById('translationModeBtn');
+    const modeField = document.getElementById('mode');
+    const transcriptLangSelector = document.getElementById('transcriptLangSelector');
+    const translationLangSelector = document.getElementById('translationLangSelector');
+    const headerTranscriptLang = document.getElementById('headerTranscriptLang');
+
+    if (transcriptModeBtn && translationModeBtn) {
+        transcriptModeBtn.addEventListener('click', async () => {
+            // Already in transcript mode
+            if (modeField.value === 'transcript') return;
+
+            // Switch to transcript mode
+            modeField.value = 'transcript';
+            transcriptModeBtn.classList.add('active');
+            translationModeBtn.classList.remove('active');
+
+            // Show/hide language selectors
+            transcriptLangSelector.style.display = 'flex';
+            translationLangSelector.style.display = 'none';
+
+            // Sync transcript language with source language
+            headerTranscriptLang.value = DOM.headerSourceLang.value;
+
+            // Update UI
+            updateUIForMode('transcript');
+            setServerConfig({ mode: 'transcript' });
+
+            // Notify server
+            try {
+                const response = await fetch('/api/config/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: { 'mode': 'transcript' } })
+                });
+
+                if (response.ok) {
+                    showToast('🎤 Switched to Transcript mode', 'info', 2000);
+                } else {
+                    showToast('⚠️ Mode changed locally. Restart recognition to apply.', 'warning', 3000);
+                }
+            } catch (error) {
+                console.error('Failed to update mode:', error);
+            }
+        });
+
+        translationModeBtn.addEventListener('click', async () => {
+            // Already in translation mode
+            if (modeField.value === 'translation') return;
+
+            // Switch to translation mode
+            modeField.value = 'translation';
+            translationModeBtn.classList.add('active');
+            transcriptModeBtn.classList.remove('active');
+
+            // Show/hide language selectors
+            transcriptLangSelector.style.display = 'none';
+            translationLangSelector.style.display = 'flex';
+
+            // Sync source language with transcript language
+            DOM.headerSourceLang.value = headerTranscriptLang.value;
+            DOM.sourceLang.value = headerTranscriptLang.value;
+
+            // Update UI
+            updateUIForMode('translation');
+            setServerConfig({ mode: 'translation' });
+
+            // Notify server
+            try {
+                const response = await fetch('/api/config/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: { 'mode': 'translation' } })
+                });
+
+                if (response.ok) {
+                    showToast('🌐 Switched to Translation mode', 'info', 2000);
+                } else {
+                    showToast('⚠️ Mode changed locally. Restart recognition to apply.', 'warning', 3000);
+                }
+            } catch (error) {
+                console.error('Failed to update mode:', error);
+            }
+        });
+    }
+
+    // Header transcript language change (Transcript mode only)
+    if (headerTranscriptLang) {
+        headerTranscriptLang.addEventListener('change', () => {
+            const newLang = headerTranscriptLang.value;
+            console.log('Header transcript language changed to:', newLang);
+
+            // Sync settings panel language
+            DOM.sourceLang.value = newLang;
+
+            // Notify server if running
+            if (isConnected && ws && isRunning) {
+                sendSettingsToServer({
+                    source_lang: newLang,
+                    target_lang: DOM.targetLang.value,
+                    tts_enabled: DOM.ttsEnabled.checked
+                });
+                showToast('Language changed. Please stop and restart recognition to apply.', 'warning', 5000);
+            } else {
+                showToast(`Language set to ${newLang.toUpperCase()}`, 'info', 2000);
+            }
+
+            // Update server config
+            setServerConfig({ source_lang: newLang });
+        });
+    }
+
+    // Header toggle source button (Translation mode only)
+    const headerToggleSourceBtn = document.getElementById('headerToggleSourceBtn');
+    const headerToggleSourceIcon = document.getElementById('headerToggleSourceIcon');
     const showSourceLangCheckbox = document.getElementById('showSourceLang');
+
+    if (headerToggleSourceBtn && showSourceLangCheckbox) {
+        headerToggleSourceBtn.addEventListener('click', () => {
+            // Toggle the checkbox
+            showSourceLangCheckbox.checked = !showSourceLangCheckbox.checked;
+
+            // Update icon
+            if (showSourceLangCheckbox.checked) {
+                headerToggleSourceIcon.textContent = '👁️';
+            } else {
+                headerToggleSourceIcon.textContent = '👁️‍🗨️';
+            }
+
+            // Re-render all existing text pairs
+            textPairs.forEach(pair => {
+                updatePairDisplay(pair);
+            });
+        });
+    }
+
+    // Toggle source language button in output controls (Translation mode only - legacy)
+    const toggleSourceBtn = document.getElementById('toggleSourceBtn');
     const toggleSourceIcon = document.getElementById('toggleSourceIcon');
     const toggleSourceText = document.getElementById('toggleSourceText');
 
@@ -291,9 +427,11 @@ export function setupUIEventListeners() {
             if (showSourceLangCheckbox.checked) {
                 toggleSourceIcon.textContent = '👁️';
                 toggleSourceText.textContent = 'Hide Source';
+                if (headerToggleSourceIcon) headerToggleSourceIcon.textContent = '👁️';
             } else {
                 toggleSourceIcon.textContent = '👁️‍🗨️';
                 toggleSourceText.textContent = 'Show Source';
+                if (headerToggleSourceIcon) headerToggleSourceIcon.textContent = '👁️‍🗨️';
             }
 
             // Re-render all existing text pairs

@@ -14,27 +14,58 @@
         <header>
             <h1>🎤 Audio Recognition</h1>
             <div class="header-right">
-                <div class="lang-toggle">
-                    <select class="lang-select" id="headerSourceLang">
-                        <option value="en">EN</option>
-                        <option value="ja">JA</option>
-                        <option value="es">ES</option>
-                        <option value="fr">FR</option>
-                        <option value="de">DE</option>
-                        <option value="zh">ZH</option>
-                        <option value="ko">KO</option>
-                    </select>
-                    <button class="lang-swap-btn" id="langSwapBtn">⇄</button>
-                    <select class="lang-select" id="headerTargetLang">
-                        <option value="ja">JA</option>
-                        <option value="en">EN</option>
-                        <option value="es">ES</option>
-                        <option value="fr">FR</option>
-                        <option value="de">DE</option>
-                        <option value="zh">ZH</option>
-                        <option value="ko">KO</option>
-                    </select>
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn" id="transcriptModeBtn" data-mode="transcript">
+                        🎤 Transcript
+                    </button>
+                    <button class="mode-btn active" id="translationModeBtn" data-mode="translation">
+                        🌐 Translation
+                    </button>
                 </div>
+
+                <!-- Language Selection (mode-dependent) -->
+                <div class="lang-toggle" id="headerLangToggle">
+                    <!-- Transcript mode: Single language selector -->
+                    <div id="transcriptLangSelector" style="display: none;">
+                        <select class="lang-select" id="headerTranscriptLang">
+                            <option value="en">English</option>
+                            <option value="ja">Japanese</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ko">Korean</option>
+                        </select>
+                    </div>
+
+                    <!-- Translation mode: Source → Target with swap button -->
+                    <div id="translationLangSelector" style="display: flex; align-items: center; gap: 4px;">
+                        <select class="lang-select" id="headerSourceLang">
+                            <option value="en">EN</option>
+                            <option value="ja">JA</option>
+                            <option value="es">ES</option>
+                            <option value="fr">FR</option>
+                            <option value="de">DE</option>
+                            <option value="zh">ZH</option>
+                            <option value="ko">KO</option>
+                        </select>
+                        <button class="lang-swap-btn" id="langSwapBtn">⇄</button>
+                        <select class="lang-select" id="headerTargetLang">
+                            <option value="ja">JA</option>
+                            <option value="en">EN</option>
+                            <option value="es">ES</option>
+                            <option value="fr">FR</option>
+                            <option value="de">DE</option>
+                            <option value="zh">ZH</option>
+                            <option value="ko">KO</option>
+                        </select>
+                        <button id="headerToggleSourceBtn" type="button" style="padding: 4px 8px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin-left: 4px;">
+                            <span id="headerToggleSourceIcon">👁️</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="status-bar">
                     <div class="status-dot" id="statusDot"></div>
                     <span id="statusText">Disconnected</span>
@@ -70,14 +101,8 @@
                 <button class="close-btn" id="closeSettingsBtn">✕</button>
             </div>
 
-            <!-- Mode Selection -->
-            <div class="settings-group">
-                <label for="mode">Mode:</label>
-                <select id="mode">
-                    <option value="translation">Translation (Recognition + Translation)</option>
-                    <option value="transcript">Transcript Only (Recognition)</option>
-                </select>
-            </div>
+            <!-- Hidden mode field for backend compatibility -->
+            <input type="hidden" id="mode" value="translation">
 
             <!-- Source Language (always visible) -->
             <div class="settings-group">
