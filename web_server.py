@@ -525,15 +525,19 @@ def run_recognition_system(config_path: str = "config.yaml",
             def check_and_store_instance():
                 """定期的に_system_instanceと_config_manager_instanceをチェックしてserver_stateに保存"""
                 import time
+                system_captured = False
+                config_captured = False
                 for _ in range(50):  # 最大5秒待機
                     time.sleep(0.1)
-                    if hasattr(main_module, '_system_instance') and main_module._system_instance:
+                    if not system_captured and hasattr(main_module, '_system_instance') and main_module._system_instance:
                         server_state.recognition_system = main_module._system_instance
                         logger.info("System instance captured for stop control")
-                    if hasattr(main_module, '_config_manager_instance') and main_module._config_manager_instance:
+                        system_captured = True
+                    if not config_captured and hasattr(main_module, '_config_manager_instance') and main_module._config_manager_instance:
                         server_state.config_manager = main_module._config_manager_instance
                         logger.info("Config manager instance captured for reload support")
-                    if server_state.recognition_system and server_state.config_manager:
+                        config_captured = True
+                    if system_captured and config_captured:
                         break
 
             # インスタンスキャプチャ用スレッドを開始
