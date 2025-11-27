@@ -41,9 +41,9 @@ audio:
   buffer_duration: 5.0
   voice_detection:
     silence_threshold: 0.005
-    voice_activity_threshold: 0.01
+    voice_activity_threshold: 0.005
     silence_duration: 1.0
-    zero_crossing_rate_threshold: 0.1
+    zero_crossing_rate_threshold: 0.05
   dynamic_buffer:
     min_duration: 2.0
     max_duration: 30.0
